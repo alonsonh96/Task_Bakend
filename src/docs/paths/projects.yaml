@@ -1,0 +1,160 @@
+projects:
+  get:
+    summary: Obtener todos los proyectos
+    description: Retorna una lista de todos los proyectos registrados.
+    tags:
+      - Projects
+    responses:
+      '200':
+        description: Lista de proyectos obtenida correctamente
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/components/schemas/Project'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+  post:
+    summary: Guardar un proyecto
+    description: Guarda un proyecto en la base de datos
+    tags:
+      - Projects
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/components/schemas/ProjectInput'
+    responses:
+      '201':
+        description: Proyecto creado exitosamente
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Project created successfully
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+singleProject:
+  get:
+    summary: Obtener el proyecto por ID
+    description: Retorna el proyecto buscado
+    tags:
+     - Projects
+    parameters:
+     - name: projectId
+       in: path
+       required: true
+       schema:
+          type: string
+    responses:
+      '200':
+        description: Proyecto encontrado
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '../components/schemas.yaml#/components/schemas/Project'
+      '404':
+        description: Proyecto no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+  
+
+  put:
+    summary: Actualizar un proyecto por ID
+    description: Actualiza un proyecto existente en la base de datos
+    tags:
+      - Projects
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/components/schemas/ProjectInput'
+    responses:
+      '200':
+        description: Proyecto actualizado correctamente
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Project updated successfully"
+      '404':
+        description: Proyecto no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+    
+  delete:
+    summary: Eliminar un proyecto por ID
+    description: Elimina un proyecto de la base de datos por su ID
+    tags:
+      - Projects
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Proyecto eliminado correctamente
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: "Project deleted successfully"
+      '404':
+        description: Proyecto no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'

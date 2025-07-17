@@ -2,22 +2,11 @@ import type { Request, Response } from 'express';
 import Project from '../models/Project';
 
 export class ProjectController {
-    static createProject = async(req: Request, res: Response) => {
-            const project = new Project(req.body);
-            try {
-                await project.save();
-                res.send({ message: 'Project created successfully' });
-            } catch (error) {
-                res.status(500).json({ message: 'Error creating project', error });
-            }
-    }
-
 
     static getAllProjects = async(req: Request, res:Response) => {
         try {
-            const projects = await Project.find({});
-            res.json(projects);
-            res.status(200).json({ message: 'Fetched all projects' });
+            const projects = await Project.find().populate('tasks'); // Populate tasks field
+            res.status(200).json(projects);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching projects', error });
         }
@@ -27,18 +16,25 @@ export class ProjectController {
     static getProjectById = async(req: Request, res: Response) => {
         try {
             const id = req.params.id;
-            console.log('Fetching project with ID:', id);
             const projectById = await Project.findById(id).populate('tasks');
             if(!projectById) {
-                const error = new Error('Project not found');
-                return res.status(404).json({ error: error.message });
+                return res.status(404).json({ error: 'Project not found' });
             }
-            res.json(projectById);
+            res.status(200).json(projectById);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching project by ID', error });
         }
     }
 
+    static createProject = async(req: Request, res: Response) => {
+        const project = new Project(req.body);
+        try {
+            await project.save();
+            res.status(201).send({ message: 'Project created successfully' });
+        } catch (error) {
+            res.status(500).json({ message: 'Error creating project', error });
+        }
+    }
 
     static updateProjectById = async(req: Request, res: Response) => {
         try {
@@ -49,7 +45,7 @@ export class ProjectController {
                 return res.status(404).json({ error: error.message });
             }
             await project.save();
-            res.send({ message: 'Project updated successfully' });
+            res.status(200).send({ message: 'Project updated successfully' });
         } catch (error) {
             res.status(500).json({ message: 'Error updating project', error });
         }
@@ -64,7 +60,7 @@ export class ProjectController {
                 return res.status(404).json({ message: 'Project not found' });
             }
             await Project.deleteOne();
-            res.send({ message: 'Project deleted successfully' });
+            res.status(200).send({ message: 'Project deleted successfully' });
         } catch (error) {
             res.send({ message: 'Error deleting project', error });
         }

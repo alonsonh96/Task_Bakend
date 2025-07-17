@@ -1,0 +1,25 @@
+ErrorResponse:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Error del servidor"
+    error:
+      type: string
+      example: "Detalles técnicos del error"
+
+
+NotFound:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Recurso no encontrado"
+
+
+BadRequest:
+  type: object
+  properties:
+    message:
+      type: string
+      example: "Datos inválidos"

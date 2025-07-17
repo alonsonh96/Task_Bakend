@@ -1,0 +1,125 @@
+components:
+  schemas:
+    Project:
+      type: object
+      properties:
+        projectName:
+          type: string
+          example: 'Proyecto Alfa'
+          description: 'Nombre del proyecto'
+        clientName:
+          type: string
+          example: 'Empresa XYZ'
+          description: 'Nombre del cliente'
+        description:
+          type: string
+          example: 'Proyecto para plataforma web'
+          description: 'Descripción del proyecto'
+        tasks:
+          type: array
+          description: 'Lista de tareas asociadas (campo virtual, puede no estar siempre presente)'
+          items:
+            $ref: '#/components/schemas/Task'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-07-15T12:00:00Z'
+          description: 'Fecha de creación'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-07-16T14:30:00Z'
+          description: 'Fecha de última actualización'
+      required:
+        - projectName
+        - clientName
+        - description
+
+
+
+    ProjectInput:
+      type: object
+      required:
+        - projectName
+        - clientName
+        - description
+      properties:
+        projectName:
+          type: string
+          example: 'Proyecto Beta'
+          description: 'Nombre del proyecto'
+        clientName:
+          type: string
+          example: 'Cliente ACME'
+          description: 'Nombre del cliente'
+        description:
+          type: string
+          example: 'Una aplicación de tareas para equipos de trabajo'
+          description: 'Descripción del proyecto'
+
+    Task:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: '64b1f1ae2f9c1e001234abcd'
+          description: 'ID de la tarea'
+        name:
+          type: string
+          example: 'Diseñar login'
+          description: 'Nombre de la tarea'
+        description:
+          type: string
+          example: 'Tarea para diseñar la pantalla de login'
+          description: 'Descripción de la tarea'
+        project:
+          type: string
+          format: objectId
+          example: '64b1f1ae2f9c1e001234abcd'
+          description: 'ID del proyecto asociado'
+        status:
+          type: string
+          enum:
+            - pending
+            - onHold
+            - inProgress
+            - underReview
+            - completed
+          example: pending
+          description: 'Estado actual de la tarea'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2024-07-15T12:00:00Z'
+          description: 'Fecha de creación'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2024-07-16T14:30:00Z'
+          description: 'Fecha de última actualización'
+      required:
+        - name
+        - description
+        - project
+
+
+    TaskInput:
+      type: object
+      required:
+        - name
+        - description
+        - project
+      properties:
+        name: 
+          type: string
+          example: 'Agregar funcionalidad de loggin'
+          description: 'Ingresar tarea a desarrollar'
+        description:
+          type: string
+          example: 'Trabajar en los endpoints de loggin'
+          description: 'Detalle de la tarea a realizar'
+        project:
+          type: string
+          format: objectId
+          example: '64b1f1ae2f9c1e001234abcd'
+          description: 'ID del proyecto asociado'

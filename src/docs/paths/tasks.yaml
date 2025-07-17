@@ -1,0 +1,103 @@
+projectTasks:
+  get:
+    summary: Listar tareas de un proyecto
+    description: Retorna una lista de las tareas del proyecto
+    tags:
+      - Tasks
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Lista de tareas
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yaml#/components/schemas/Task'
+      '404':
+        description: Tareas no encontradas
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+  
+  post:
+    summary: Guardar una tarea
+    description: Guarda una tarea para un proyecto
+    tags:
+     - Tasks
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yaml#/components/schemas/TaskInput'
+    responses:
+      '201':
+        description: 'Tarea creada exitosamente'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Task created successfully
+                task:
+                  $ref: '../components/schemas.yaml#/components/schemas/Task'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+
+singleTask:
+  get:
+    summary: Obtener una tarea específica de un proyecto
+    tags:
+      - Tasks
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Tarea encontrada
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '../components/schemas.yaml#/components/schemas/Task'
+      '404':
+        description: Proyecto no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'

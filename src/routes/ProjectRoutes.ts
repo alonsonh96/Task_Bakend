@@ -3,8 +3,17 @@ import { body, param } from 'express-validator';
 import { ProjectController } from '../controllers/ProjectController';
 import { handleInputErrors } from '../middleware/validation';
 import { TaskController } from '../controllers/TaskController';
+import { validateProjectExists } from '../middleware/project';
 
 const router = Router();
+
+router.get('/', ProjectController.getAllProjects);
+
+router.get('/:id', 
+    param('id').isMongoId().withMessage('Invalid project ID'),
+    handleInputErrors,
+    ProjectController.getProjectById
+);
 
 router.post('/', 
     body('projectName').notEmpty().withMessage('Project name is required'),
@@ -13,14 +22,6 @@ router.post('/',
     handleInputErrors,
     ProjectController.createProject
 );
-
-router.get('/', ProjectController.getAllProjects);
-router.get('/:id', 
-    param('id').isMongoId().withMessage('Invalid project ID'),
-    handleInputErrors,
-    ProjectController.getProjectById
-);
-
 
 router.put('/:id', 
     param('id').isMongoId().withMessage('Invalid project ID'),
@@ -31,7 +32,6 @@ router.put('/:id',
     ProjectController.updateProjectById
 );
 
-
 router.delete('/:id',
     param('id').isMongoId().withMessage('Invalid project ID'),
     handleInputErrors,
@@ -40,7 +40,20 @@ router.delete('/:id',
 
 
 // Routers for tasks
-router.post('/:projectId/tasks', 
+router.get('/:projectId/tasks',
+    validateProjectExists,
+    TaskController.getProjectTask
+)
+
+router.get('/:projectId/tasks/:taskId',
+    validateProjectExists,
+    TaskController.getTaskById
+)
+
+router.post('/:projectId/tasks',
+    validateProjectExists, 
+    body('name').notEmpty().withMessage('Task name is required'),
+    body('description').notEmpty().withMessage('Task description is required'),
     TaskController.createTask
 )
 
