@@ -29,4 +29,5 @@ export async function taskBelongsProject(req: Request, res: Response, next: Next
     if (req.task.project.toString() !== req.project.id.toString()) {
         return res.status(403).json({ message: 'Forbidden action: Task does not belong to this project' });
     }
+    next();
 }

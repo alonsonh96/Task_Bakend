@@ -1,91 +1,54 @@
 import { Router } from 'express';
-import { body, param } from 'express-validator';
+import { body } from 'express-validator';
 import { ProjectController } from '../controllers/ProjectController';
 import { handleInputErrors } from '../middleware/validation';
 import { TaskController } from '../controllers/TaskController';
 import { validateProjectExists } from '../middleware/project';
 import { taskBelongsProject, validateTaskExists } from '../middleware/task';
+import { validateMongoId, validateProjectBody, validateTaskBody } from '../validators/validators';
 
 const router = Router();
 
 router.param('projectId', validateProjectExists)
-router.param('taskId', validateTaskExists)
-router.param('taskId', taskBelongsProject)
-
+router.param('taskId', async (req, res, next, id) => {
+    await validateTaskExists(req, res, async () => {
+    await taskBelongsProject(req, res, next);
+  });
+});
 
 router.get('/', ProjectController.getAllProjects);
 
-router.get('/:projectId', 
-    param('projectId').isMongoId().withMessage('Invalid project ID'),
-    handleInputErrors,
-    ProjectController.getProjectById
-);
-
 router.post('/', 
-    body('projectName').notEmpty().withMessage('Project name is required'),
-    body('clientName').notEmpty().withMessage('Client name is required'),
-    body('description').notEmpty().withMessage('Description is required'),
+    validateProjectBody,
     handleInputErrors,
     ProjectController.createProject
 );
 
-router.put('/:projectId', 
-    param('projectId').isMongoId().withMessage('Invalid project ID'),
-    body('projectName').notEmpty().withMessage('Project name is required'),
-    body('clientName').notEmpty().withMessage('Client name is required'),
-    body('description').notEmpty().withMessage('Description is required'),
-    handleInputErrors,
-    ProjectController.updateProjectById
-);
-
-router.delete('/:projectId',
-    param('projectId').isMongoId().withMessage('Invalid project ID'),
-    handleInputErrors,
-    ProjectController.deleteProjectById
-);
+router.route('/:projectId')
+    .get(validateMongoId('projectId'), handleInputErrors, ProjectController.getProjectById)
+    .put([...validateProjectBody, validateMongoId('projectId')], handleInputErrors, ProjectController.updateProjectById)
+    .delete(validateMongoId('projectId'), handleInputErrors, ProjectController.deleteProjectById);
 
 
-// Routers for tasks
-router.get('/:projectId/tasks',
-    TaskController.getProjectTask
-)
+// --- Task routes ---
+router.get('/:projectId/tasks', TaskController.getProjectTask)
 
-router.get('/:projectId/tasks/:taskId',
-    param('taskId').isMongoId().withMessage('Invalid ID'),
-    handleInputErrors,
-    TaskController.getTaskById
-)
+router.route('/:projectId/tasks/:taskId')
+    .get(validateMongoId('taskId'), handleInputErrors, TaskController.getTaskById)
+    .put([...validateTaskBody, validateMongoId('taskId')], handleInputErrors, TaskController.updateTask)
+    .delete(validateMongoId('taskId'), handleInputErrors, TaskController.deleteTask)
 
 router.post('/:projectId/tasks',
-    body('name').notEmpty().withMessage('Task name is required'),
-    body('description').notEmpty().withMessage('Task description is required'),
+    validateTaskBody,
+    handleInputErrors,
     TaskController.createTask
 )
 
-
-router.put('/:projectId/tasks/:taskId',
-    param('taskId').isMongoId().withMessage('Invalid ID'),
-    body('name').notEmpty().withMessage('Task name is required'),
-    body('description').notEmpty().withMessage('Task description is required'),
-    handleInputErrors,
-    TaskController.updateTask
-)
-
-
-router.delete('/:projectId/tasks/:taskId',
-    param('taskId').isMongoId().withMessage('Invalid ID'),
-    handleInputErrors,
-    TaskController.deleteTask
-)
-
-
 router.post('/:projectId/tasks/:taskId/status', 
-    param('taskId').isMongoId().withMessage('Invalid ID'),
-    body('status')
-        .notEmpty().withMessage('El estado es obligatorio'),
+    validateMongoId('taskId'),
+    body('status').notEmpty().withMessage('El estado es obligatorio'),
     handleInputErrors,
     TaskController.updateStatus
 )
-
 
 export default router;

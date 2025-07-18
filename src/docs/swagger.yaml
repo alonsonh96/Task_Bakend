@@ -19,5 +19,8 @@ paths:
   /api/projects/{projectId}/tasks/{taskId}:
     $ref: './paths/tasks.yaml#/singleTask'
 
+  /api/projects/{projectId}/tasks/{taskId}/status:
+    $ref: './paths/tasks.yaml#/statusTask'
+
 components:
   $ref: './components/schemas.yaml'

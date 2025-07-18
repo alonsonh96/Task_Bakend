@@ -118,8 +118,12 @@ components:
           type: string
           example: 'Trabajar en los endpoints de loggin'
           description: 'Detalle de la tarea a realizar'
-        project:
+        # project:
+        #   type: string
+        #   format: objectId
+        #   example: '64b1f1ae2f9c1e001234abcd'
+        #   description: 'ID del proyecto asociado'
+        status:
           type: string
-          format: objectId
-          example: '64b1f1ae2f9c1e001234abcd'
-          description: 'ID del proyecto asociado'
+          example: 'inProgress'
+          description: 'Detalle del estado de la tarea'

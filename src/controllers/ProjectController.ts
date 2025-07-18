@@ -42,8 +42,8 @@ export class ProjectController {
 
     static updateProjectById = async(req: Request, res: Response) => {
         try {
-            const { idProject } = req.params;
-            const updatedProject = await Project.findByIdAndUpdate(idProject, req.body, {
+            const { projectId } = req.params;
+            const updatedProject = await Project.findByIdAndUpdate(projectId, req.body, {
                 new: true,
                 runValidators: true,
             });

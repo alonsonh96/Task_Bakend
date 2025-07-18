@@ -101,3 +101,145 @@ singleTask:
           application/json:
             schema:
               $ref: '../components/error.yaml#/ErrorResponse'
+
+  put:
+    summary: Actualizar la tarea especifica de un proyecto
+    tags:
+      - Tasks
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema: 
+            $ref: '../components/schemas.yaml#/components/schemas/TaskInput'
+    responses:
+      '200':
+        description: Tarea encontrada
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '../components/schemas.yaml#/components/schemas/Task'
+      '404':
+        description: Task no encontrado
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+  
+  delete:
+    summary: Eliminar una tarea específica de un proyecto
+    tags:
+      - Tasks
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Tarea eliminada correctamente
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Task deleted successfully
+      '404':
+        description: Tarea no encontrada
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
+
+statusTask:
+  post:
+    summary: Actualizar el estado de una tarea específica
+    tags:
+      - Tasks
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: taskId
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: completed
+            required:
+              - status
+    responses:
+      '200':
+        description: Estado de la tarea actualizado correctamente
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Task update successfully
+      # '400':
+      #   description: Validación fallida
+      #   content:
+      #     application/json:
+      #       schema:
+      #         $ref: '../components/error.yaml#/ErrorResponse'
+      '404':
+        description: Tarea no encontrada
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/NotFound'
+      '500':
+        description: Error interno del servidor
+        content:
+          application/json:
+            schema:
+              $ref: '../components/error.yaml#/ErrorResponse'
+
