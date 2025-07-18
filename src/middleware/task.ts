@@ -23,3 +23,10 @@ export async function validateTaskExists(req: Request, res: Response, next: Next
         res.status(500).json({ message: 'Error validating task existence'});
     }
 }
+
+
+export async function taskBelongsProject(req: Request, res: Response, next: NextFunction) {
+    if (req.task.project.toString() !== req.project.id.toString()) {
+        return res.status(403).json({ message: 'Forbidden action: Task does not belong to this project' });
+    }
+}

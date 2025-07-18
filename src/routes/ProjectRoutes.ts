@@ -4,14 +4,19 @@ import { ProjectController } from '../controllers/ProjectController';
 import { handleInputErrors } from '../middleware/validation';
 import { TaskController } from '../controllers/TaskController';
 import { validateProjectExists } from '../middleware/project';
-import { validateTaskExists } from '../middleware/task';
+import { taskBelongsProject, validateTaskExists } from '../middleware/task';
 
 const router = Router();
 
+router.param('projectId', validateProjectExists)
+router.param('taskId', validateTaskExists)
+router.param('taskId', taskBelongsProject)
+
+
 router.get('/', ProjectController.getAllProjects);
 
-router.get('/:id', 
-    param('id').isMongoId().withMessage('Invalid project ID'),
+router.get('/:projectId', 
+    param('projectId').isMongoId().withMessage('Invalid project ID'),
     handleInputErrors,
     ProjectController.getProjectById
 );
@@ -24,8 +29,8 @@ router.post('/',
     ProjectController.createProject
 );
 
-router.put('/:id', 
-    param('id').isMongoId().withMessage('Invalid project ID'),
+router.put('/:projectId', 
+    param('projectId').isMongoId().withMessage('Invalid project ID'),
     body('projectName').notEmpty().withMessage('Project name is required'),
     body('clientName').notEmpty().withMessage('Client name is required'),
     body('description').notEmpty().withMessage('Description is required'),
@@ -33,17 +38,14 @@ router.put('/:id',
     ProjectController.updateProjectById
 );
 
-router.delete('/:id',
-    param('id').isMongoId().withMessage('Invalid project ID'),
+router.delete('/:projectId',
+    param('projectId').isMongoId().withMessage('Invalid project ID'),
     handleInputErrors,
     ProjectController.deleteProjectById
 );
 
 
 // Routers for tasks
-router.param('projectId', validateProjectExists)
-router.param('taskId', validateTaskExists)
-
 router.get('/:projectId/tasks',
     TaskController.getProjectTask
 )

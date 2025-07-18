@@ -38,9 +38,6 @@ export class TaskController {
 
     static getTaskById = async (req: Request, res: Response) => {
         try {
-            if (req.task.project.toString() !== req.project.id) {
-                return res.status(403).json({ message: 'Forbidden action: Task does not belong to this project' });
-            }
             return res.status(200).json(req.task);
         } catch (error) {
             return res.status(500).json({ message: 'Error get task', error})
@@ -50,10 +47,6 @@ export class TaskController {
 
     static updateTask = async (req: Request, res: Response) => {
         try {
-            if (req.task.project.toString() !== req.project.id) {
-                return res.status(403).json({ message: 'Forbidden action: Task does not belong to this project' });
-            }
-
             const updatedTask = await Task.findByIdAndUpdate(req.task._id, req.body, {
                 new: true,  // Return the updated document
                 runValidators: true// Apply schema validations
@@ -71,9 +64,6 @@ export class TaskController {
 
     static deleteTask = async (req: Request, res: Response) => {
         try {
-            if (req.task.project.toString() !== req.project.id) {
-                return res.status(403).json({ message: 'Forbidden: Task does not belong to this project' });
-            }
             await Task.deleteOne({ _id: req.task._id });
             return res.status(200).json({ message: 'Task deleted successfully' });
         } catch (error) {
@@ -84,9 +74,6 @@ export class TaskController {
     
     static updateStatus = async (req: Request, res: Response) => {
         try {
-            if (req.task.project.toString() !== req.project.id) {
-                return res.status(403).json({ message: 'Forbidden: Task does not belong to this project' });
-            }
             // Update status
             const { status } = req.body;
             req.task.status = status;

@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import Project from '../models/Project';
+import Task from '../models/Task';
 
 export class ProjectController {
 
@@ -19,12 +20,7 @@ export class ProjectController {
     
     static getProjectById = async(req: Request, res: Response) => {
         try {
-            const { id } = req.params;
-            const projectById = await Project.findById(id).populate('tasks');
-            if(!projectById) {
-                return res.status(404).json({ error: 'Project not found' });
-            }
-            return res.status(200).json(projectById);
+            return res.status(200).json(req.project);
         } catch (error) {
             res.status(500).json({ message: 'Error fetching project by ID', error });
         }
@@ -46,15 +42,11 @@ export class ProjectController {
 
     static updateProjectById = async(req: Request, res: Response) => {
         try {
-            const { id } = req.params;
-            const updatedProject = await Project.findByIdAndUpdate(id, req.body, {
+            const { idProject } = req.params;
+            const updatedProject = await Project.findByIdAndUpdate(idProject, req.body, {
                 new: true,
                 runValidators: true,
             });
-
-            if (!updatedProject) {
-                return res.status(404).json({ message: 'Project not found' });
-            }
 
              return res.status(200).json({
                 message: 'Project updated successfully',
@@ -68,12 +60,10 @@ export class ProjectController {
 
     static deleteProjectById = async(req:Request, res:Response) => {
         try {
-            const { id } = req.params;
-            const project = await Project.findById(id);
-            if (!project) {
-                return res.status(404).json({ message: 'Project not found' });
-            }
-            await Project.deleteOne({ _id: id });
+            const { projectId } = req.params
+            // Elimina las tareas asociadas
+            await Task.deleteMany({ project: projectId });
+            await Project.deleteOne({ _id: req.params.projectId });
             return res.status(200).json({ message: 'Project deleted successfully' });
         } catch (error) {
             return res.send({ message: 'Error deleting project', error });
