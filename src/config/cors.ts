@@ -1,7 +1,7 @@
 import { CorsOptions } from "cors"
 
 const whitelist = [
-  process.env.FRONTEND_UR
+  process.env.FRONTEND_URL
 ];
 
 export const corsOptions : CorsOptions = {
@@ -10,7 +10,8 @@ export const corsOptions : CorsOptions = {
         if(whitelist.includes(origin)){
             return callback(null, true)
         } else {
-            return callback(new Error('❌ Acceso no permitido por CORS'))
+            console.warn(`🚫 CORS blocked request from origin: ${origin}`);
+            return callback(new Error("❌ Access not allowed by CORS"));
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
