@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import Project from '../models/Project';
 import Task from '../models/Task';
+import { ProjectsDTO } from '../dtos/project.dto';
 
 export class ProjectController {
 
@@ -8,9 +9,21 @@ export class ProjectController {
         try {
             // Retrieve all projects and populate their associated tasks
             const projects = await Project.find().populate('tasks');
+            const projectDTOs: ProjectsDTO[] = projects.map(project => ({
+                _id: String(project._id),
+                projectName: project.projectName,
+                clientName: project.clientName,
+                description: project.description,
+                tasks: project.tasks.map((task: any) => ({
+                    _id: String(task._id),
+                    name: task.name,
+                    description: task.description,
+                    status: task.status
+                }))
+            }));
             return res.status(200).json({
                 message: 'Projects fetched successfully',
-                data: projects
+                data: projectDTOs
             })
         } catch (error) {
             return res.status(500).json({ message: 'Error fetching projects', error });

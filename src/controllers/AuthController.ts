@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { User } from '../models/User';
 import { hashPassword } from '../utils/auth';
-import { CreateAccountDTO } from '../DTO/userDTO';
+import { CreateAccountDTO } from '../dtos/user.dto';
 
 
 export class AuthController {
