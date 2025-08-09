@@ -28,3 +28,9 @@ export const createAccountValidators = [
     return true;
   })
 ]
+
+export const confirmAccountValidation = [
+    body('token')
+        .notEmpty()
+        .withMessage('Token is required')
+];
