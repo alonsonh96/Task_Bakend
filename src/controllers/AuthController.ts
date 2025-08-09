@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { User } from '../models/User';
 import { hashPassword } from '../utils/auth';
 import { CreateAccountDTO } from '../dtos/user.dto';
+import Token from '../models/Token';
+import { generateToken } from '../utils/token';
 
 
 export class AuthController {
@@ -26,7 +28,14 @@ export class AuthController {
                 password: hashedPassword,
             });
 
-            await user.save();
+            // Generate token
+            const token = new Token({
+                token: generateToken(),
+                user: user.id
+            })
+
+            await Promise.allSettled([user.save(), token.save() ])
+
             res.status(201).json({ message: 'User created successfully, review email to confirm your account.' });
         } catch (error) {
             res.status(500).json({ message: 'Internal server error' });
