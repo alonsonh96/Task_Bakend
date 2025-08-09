@@ -34,3 +34,9 @@ export const confirmAccountValidation = [
         .notEmpty()
         .withMessage('Token is required')
 ];
+
+
+export const logginAccountValidation = [
+  body('email').isEmail().withMessage('Email not valid'),
+  body('password').notEmpty().withMessage('Password cannot be empty.'),
+]

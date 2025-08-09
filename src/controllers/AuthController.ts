@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { User } from '../models/User';
-import { hashPassword } from '../utils/auth';
+import { checkPassword, hashPassword } from '../utils/auth';
 import { CreateAccountDTO } from '../dtos/user.dto';
 import Token from '../models/Token';
 import { generateToken } from '../utils/token';
@@ -81,5 +81,49 @@ export class AuthController {
             res.status(500).json({ message: 'Internal server error' });
         }
     }
+
+
+
+    static loginAccount = async (req: Request, res: Response) => {
+        try {
+            const { email, password } = req.body
+            
+            const user = await User.findOne({email})
+            if(!user) return res.status(404).json({ error: 'User not found' });
+
+            // Verify if the account is confirmed
+            if (!user.confirmed) {
+                let token = await Token.findOne({ user: user.id });
+
+                if (!token) {
+                    token = new Token({
+                        user: user.id,
+                        token: generateToken(),
+                        createdAt: Date.now()
+                    });
+                    await token.save()
+                }
+
+                AuthEmail.sendConfirmationEmail({
+                    email: user.email,
+                    name: user.name,
+                    token: token.token
+                }).catch(error => {console.error(`Error sending confirmation email to ${user.email}`, error)})
+
+                return res.status(403).json({ error: 'Account not confirmed. We have sent a confirmation email' })
+            }
+
+            // Validate the password
+            const isPasswordCorrect = await checkPassword(password, user.password)
+            if(!isPasswordCorrect) return res.status(401).json({ error: 'Password incorrect'})
+
+            return res.status(201).json({message: 'User autenticated successfully', id: user.id, name: user.name, email: user.email})
+
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+
 
 }
