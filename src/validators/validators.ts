@@ -21,7 +21,7 @@ export const createAccountValidators = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Email is not valid'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
-  body('password-confirmation').custom((value, { req }) => {
+  body('password_confirmation').custom((value, { req }) => {
     if (value !== req.body.password) {
       throw new Error('Passwords do not match');
     }

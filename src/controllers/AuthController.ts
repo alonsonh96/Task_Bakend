@@ -17,7 +17,7 @@ export class AuthController {
             // Check for existing user
             const userExists = await User.findOne({ email });
             if (userExists) {
-                return res.status(409).json({ error: 'User already registered' });
+                return res.status(409).json({ message: 'User already registered' });
             }
 
             // Hash password
@@ -57,19 +57,19 @@ export class AuthController {
 
             // Validation: token is required
             if (!token) {
-                return res.status(400).json({ error: 'Token is required' });
-            }
+                return res.status(400).json({ message: 'Token is required' });
+            } 
             
             // Find token in BD
             const tokenExists = await Token.findOne({token})
             if(!tokenExists) {
-                return res.status(401).json({ error: 'Invalid or expired token' });
+                return res.status(401).json({ message: 'Invalid or expired token' });
             }
 
             // Confirm user
             const user = await User.findById(tokenExists.user)
             if(!user){
-               return res.status(404).json({ error: 'User not found' });
+               return res.status(404).json({ message: 'User not found' });
             }
             user.confirmed = true
 
