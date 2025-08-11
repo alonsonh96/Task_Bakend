@@ -40,7 +40,7 @@ router.post('/forgot-password',
 router.post('/validate-token',
     confirmAccountValidators,
     handleInputErrors,
-    
+    AuthController.validateToken
 )
 
 export default router;
