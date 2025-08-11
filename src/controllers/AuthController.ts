@@ -228,4 +228,35 @@ export class AuthController {
     }
 
 
+
+    static validateToken = async (req: Request, res: Response) => {
+        try {
+            const { token } = req.body
+
+            // Validation: token is required
+            if (!token) {
+                return res.status(400).json({ message: 'Token is required' });
+            } 
+            
+            // Find token in BD
+            const tokenExists = await Token.findOne({token})
+            if(!tokenExists) {
+                return res.status(404).json({ message: 'Invalid or expired token' });
+            }
+
+            // Validación manual para 10 minutos
+            const expirationTime = 10 * 60 * 1000; // 10 minutos
+            if (Date.now() - tokenExists.createdAt.getTime() > expirationTime) {
+                await Token.deleteOne({ _id: tokenExists._id });
+                return res.status(410).json({ message: 'Token has expired' });
+            }
+
+            return res.status(200).json({ message: 'Valid token, set your new password' });
+
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+
 }
