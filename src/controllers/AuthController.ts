@@ -89,7 +89,7 @@ export class AuthController {
             const { email, password } = req.body
             
             const user = await User.findOne({email})
-            if(!user) return res.status(404).json({ error: 'User not found' });
+            if(!user) return res.status(404).json({ message : 'User not found' });
 
             // Verify if the account is confirmed
             if (!user.confirmed) {
@@ -110,7 +110,7 @@ export class AuthController {
                     token: token.token
                 }).catch(error => {console.error(`Error sending confirmation email to ${user.email}`, error)})
 
-                return res.status(403).json({ error: 'Account not confirmed. We have sent a confirmation email' })
+                return res.status(403).json({ message: 'Account not confirmed. We have sent a confirmation email' })
             }
 
             // Validate the password
