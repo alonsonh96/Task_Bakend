@@ -173,4 +173,59 @@ export class AuthController {
     }
 
 
+
+    static forgotPassword = async (req: Request, res: Response) => {
+        try {
+            const { email } = req.body
+
+            // Email exists
+            if (!email) return res.status(404).json({ message: 'Email is required' });
+
+            // Check if user exists
+            const user = await User.findOne({ email });
+            if (!user) return res.status(404).json({ message: 'User is not registered' })
+
+            // Check for existing recent token to prevent spam
+             const existingToken = await Token.findOne({ 
+                user: user.id,
+                createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes
+            });
+
+            if (existingToken) return res.status(429).json({ message : 
+                'A confirmation code was already sent recently. Please check your email or try again later.'}
+            );
+
+            // Clean up old tokens for this user
+            await Token.deleteMany({ user: user.id });
+
+            // Generate token
+            const token = new Token({
+                token: generateToken(),
+                user: user.id
+            })
+
+            await token.save()
+
+            // Send password reset email (handle errors gracefully)
+            try {
+                await AuthEmail.sendPasswordResetToken({
+                    email: user.email,
+                    name: user.name,
+                    token: token.token
+                });
+            } catch (emailError) {
+                console.error('Failed to send password reset email:', emailError);
+                return res.status(500).json({
+                    error: 'Failed to send password reset email'
+                });
+            }   
+
+            return res.status(200).json({ message: 'Check your email for instructions' });
+
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+
 }

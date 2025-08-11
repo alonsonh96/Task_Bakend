@@ -31,5 +31,10 @@ router.post('/request-code',
     AuthController.requestConfirmationCode
 )
 
+router.post('/forgot-password',
+    emailAccountValidators,
+    handleInputErrors,
+    AuthController.forgotPassword
+)
 
 export default router;
