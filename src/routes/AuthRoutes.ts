@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import { AuthController } from "../controllers/AuthController";
 import { handleInputErrors } from "../middleware/validation";
 import { confirmAccountValidators, 
     createAccountValidators, 
     emailAccountValidators, 
-    logginAccountValidators } from "../validators/authValidators";
+    logginAccountValidators, 
+    passwordConfirmationValidators} from "../validators/authValidators";
 
 const router = Router();
 
@@ -41,6 +42,13 @@ router.post('/validate-token',
     confirmAccountValidators,
     handleInputErrors,
     AuthController.validateToken
+)
+
+router.post('/update-password/:token',
+    param('token').isNumeric().withMessage('Token not valid'),
+    passwordConfirmationValidators,
+    handleInputErrors,
+    AuthController.updatePasswordWithToken
 )
 
 export default router;

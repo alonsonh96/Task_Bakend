@@ -49,3 +49,9 @@ export const logginAccountValidators = [
 export const emailAccountValidators = [
     validators.email.valid()
 ]
+
+export const passwordConfirmationValidators = [
+  validators.password.required(),
+  validators.password.minLenght(8),
+  validators.password.confirmation()
+]

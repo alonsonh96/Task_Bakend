@@ -140,9 +140,10 @@ export class AuthController {
             if(user.confirmed) return res.status(409).json({message: 'The user is already confirmed'}) 
 
             // Check for existing recent token to prevent spam
-             const existingToken = await Token.findOne({ 
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const existingToken = await Token.findOne({ 
                 user: user.id,
-                createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes
+                createdAt: { $gt: fiveMinutesAgo }
             });
 
             if (existingToken) return res.status(429).json({ message : 
@@ -186,9 +187,10 @@ export class AuthController {
             if (!user) return res.status(404).json({ message: 'User is not registered' })
 
             // Check for existing recent token to prevent spam
-             const existingToken = await Token.findOne({ 
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+            const existingToken = await Token.findOne({ 
                 user: user.id,
-                createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes
+                createdAt: { $gt: fiveMinutesAgo }
             });
 
             if (existingToken) return res.status(429).json({ message : 
@@ -252,6 +254,38 @@ export class AuthController {
             }
 
             return res.status(200).json({ message: 'Valid token, set your new password' });
+
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
+
+    static updatePasswordWithToken = async (req: Request, res: Response) => {
+        try {
+            const { token } = req.params
+            const { password } = req.body
+
+            // Validation: token is required
+            if (!token) return res.status(400).json({ message: 'Token is required' });
+
+            // Find token in BD
+            const tokenExists = await Token.findOne({token})
+            if(!tokenExists) return res.status(404).json({ message: 'Invalid or expired token' });
+
+            // Validación manual para 10 minutos
+            const expirationTime = 10 * 60 * 1000; // 10 minutos
+            if (Date.now() - tokenExists.createdAt.getTime() > expirationTime) {
+                await Token.deleteOne({ _id: tokenExists._id });
+                return res.status(410).json({ message: 'Token has expired' });
+            }
+
+            const user = await User.findById({ _id: tokenExists.user })
+            user.password = await hashPassword(password)
+
+            await Promise.allSettled([user.save(), tokenExists.deleteOne()])
+
+            return res.status(200).json({ message: 'Password update successfully' });
 
         } catch (error) {
             res.status(500).json({ message: 'Internal server error' });
