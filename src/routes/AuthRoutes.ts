@@ -2,7 +2,10 @@ import { Router } from "express";
 import { body } from "express-validator";
 import { AuthController } from "../controllers/AuthController";
 import { handleInputErrors } from "../middleware/validation";
-import { confirmAccountValidation, createAccountValidators, logginAccountValidation } from "../validators/validators";
+import { confirmAccountValidators, 
+    createAccountValidators, 
+    emailAccountValidators, 
+    logginAccountValidators } from "../validators/authValidators";
 
 const router = Router();
 
@@ -12,14 +15,20 @@ router.post('/create-account',
     AuthController.createAccount)
 
 router.post('/confirm-account',
-    confirmAccountValidation,
+    confirmAccountValidators,
     handleInputErrors,
     AuthController.confirmAccount)
 
 router.post('/login',
-    logginAccountValidation,
+    logginAccountValidators,
     handleInputErrors,
     AuthController.loginAccount
+)
+
+router.post('/request-code', 
+    emailAccountValidators,
+    handleInputErrors,
+    AuthController.requestConfirmationCode
 )
 
 

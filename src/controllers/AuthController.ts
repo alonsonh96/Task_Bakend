@@ -125,5 +125,52 @@ export class AuthController {
     }
 
 
+    static requestConfirmationCode = async(req: Request, res: Response) => {
+        try {
+            const { email } = req.body
+
+            // Email exists
+            if (!email) return res.status(404).json({ message: 'Email is required'});
+
+            // Check if user exists
+            const user = await User.findOne({email});
+            if(!user) return res.status(404).json({message: 'User is not registered'})
+            
+            // Check if user is already confirmed
+            if(user.confirmed) return res.status(409).json({message: 'The user is already confirmed'}) 
+
+            // Check for existing recent token to prevent spam
+             const existingToken = await Token.findOne({ 
+                user: user.id,
+                createdAt: { $gt: new Date(Date.now() - 5 * 60 * 1000) } // 5 minutes
+            });
+
+            if (existingToken) return res.status(429).json({ message : 
+                'A confirmation code was already sent recently. Please check your email or try again later.'}
+            );
+
+            // Clean up old tokens for this user
+            await Token.deleteMany({ user: user.id });
+
+            // Generate token
+            const token = new Token({
+                token: generateToken(),
+                user: user.id
+            })
+
+            await AuthEmail.sendConfirmationEmail({
+                email: user.email,
+                name: user.name,
+                token: token.token
+            })
+
+            await Promise.allSettled([user.save(), token.save()])
+            return res.status(200).json({ message: 'A new token has been sent' });
+
+        } catch (error) {
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+
 
 }

@@ -1,42 +1,21 @@
-import { body, param } from 'express-validator';
+import { body, param, ValidationChain  } from 'express-validator';
 
-// Common validators
-export const validateMongoId = (name: string) => param(name).isMongoId().withMessage(`Invalid ${name}`);
+const validators = {
+  mongoId: (field : string) => param(field).isMongoId().withMessage(`Invalid ${field}`),
 
-export const validateProjectBody = [
-  body('projectName').notEmpty().withMessage('Project name is required'),
-  body('clientName').notEmpty().withMessage('Client name is required'),
-  body('description').notEmpty().withMessage('Description is required'),
-];
-
-export const validateTaskBody = [
-  body('name').notEmpty().withMessage('Task name is required'),
-  body('description').notEmpty().withMessage('Task description is required'),
-];
+  required: (field : string, customMessage?: string) => body(field).notEmpty().withMessage(customMessage || `${field} is required`)
+}
 
 
+export const validateMongoId = (name : string) => validators.mongoId(name)
 
-// Auth validators
-export const createAccountValidators = [
-  body('name').trim().notEmpty().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Email is not valid'),
-  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters long'),
-  body('password_confirmation').custom((value, { req }) => {
-    if (value !== req.body.password) {
-      throw new Error('Passwords do not match');
-    }
-    return true;
-  })
+export const validateProjectBody : ValidationChain[] = [
+  validators.required('projectName'),
+  validators.required('clientName'),
+  validators.required('description'),
 ]
 
-export const confirmAccountValidation = [
-    body('token')
-        .notEmpty()
-        .withMessage('Token is required')
-];
-
-
-export const logginAccountValidation = [
-  body('email').isEmail().withMessage('Email not valid'),
-  body('password').notEmpty().withMessage('Password cannot be empty.'),
+export const validateTaskBody : ValidationChain[] = [
+  validators.required('name'),
+  validators.required('description'),
 ]
