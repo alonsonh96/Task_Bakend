@@ -6,6 +6,7 @@ import { TaskController } from '../controllers/TaskController';
 import { validateProjectExists } from '../middleware/project';
 import { taskBelongsProject, validateTaskExists } from '../middleware/task';
 import { validateMongoId, validateProjectBody, validateTaskBody } from '../validators/validators';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 

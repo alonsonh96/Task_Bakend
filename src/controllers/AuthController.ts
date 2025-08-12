@@ -5,6 +5,7 @@ import { CreateAccountDTO } from '../dtos/user.dto';
 import Token from '../models/Token';
 import { generateToken } from '../utils/token';
 import { AuthEmail } from '../emails/AuthEmail';
+import { generateAccessToken } from '../utils/jwt';
 
 
 
@@ -117,7 +118,9 @@ export class AuthController {
             const isPasswordCorrect = await checkPassword(password, user.password)
             if(!isPasswordCorrect) return res.status(401).json({ error: 'Password incorrect'})
 
-            return res.status(201).json({message: 'User autenticated successfully', id: user.id, name: user.name, email: user.email})
+            const accessToken = generateAccessToken({ id: user.id })
+
+            return res.status(201).json({message: 'User autenticated successfully', accessToken})
 
         } catch (error) {
             res.status(500).json({ message: 'Internal server error' });
@@ -265,13 +268,6 @@ export class AuthController {
             // Find token in BD
             const tokenExists = await Token.findOne({token})
             if(!tokenExists) return res.status(404).json({ message: 'Invalid or expired token' });
-
-            // Validación manual para 10 minutos
-            const expirationTime = 10 * 60 * 1000; // 10 minutos
-            if (Date.now() - tokenExists.createdAt.getTime() > expirationTime) {
-                await Token.deleteOne({ _id: tokenExists._id });
-                return res.status(410).json({ message: 'Token has expired' });
-            }
 
             const user = await User.findById({ _id: tokenExists.user })
             user.password = await hashPassword(password)
