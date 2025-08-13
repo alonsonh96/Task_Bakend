@@ -7,27 +7,32 @@ import { generateToken } from '../utils/token';
 import { AuthEmail } from '../emails/AuthEmail';
 import { clearAuthCookie, clearRefreshCookie, generateAccessToken, generateRefreshToken, setAuthCookie, setRefreshCookie } from '../utils/jwt';
 import jwt from "jsonwebtoken"
+import { asyncHandler } from '../utils/asyncHandler';
+import { AppError, DuplicateError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors';
+import { sendSuccess } from '../utils/responses';
 
 
 export class AuthController {
 
-    static createAccount = async (req : Request, res: Response) => {
-        try {
+    static createAccount = asyncHandler(async(req : Request, res: Response) => {
             const { name, email, password } : CreateAccountDTO = req.body;
 
+            // Normalize email
+            const normalizedEmail = email.toLowerCase().trim();
+
             // Check for existing user
-            const userExists = await User.findOne({ email });
+            const userExists = await User.findOne({ email: normalizedEmail });
             if (userExists) {
-                return res.status(409).json({ message: 'User already registered' });
+                throw new DuplicateError('User already registered with this email')
             }
 
             // Hash password
             const hashedPassword = await hashPassword(password);
 
-            // Create user
+            // Create user instance
             const user = new User({
                 name,
-                email,
+                email : normalizedEmail,
                 password: hashedPassword,
             });
 
@@ -37,51 +42,90 @@ export class AuthController {
                 user: user.id
             })
 
-            AuthEmail.sendConfirmationEmail({
-                email: user.email,
-                name: user.name,
-                token: token.token
-            })
+            // Execute database operations in transaction
+            const session = await User.startSession();
 
-            await Promise.allSettled([user.save(), token.save() ])
+            try {
+                await session.withTransaction(async () => {
+                    await user.save({ session });
+                    await token.save({ session });
+                })
 
-            res.status(201).json({ message: 'User created successfully, review email to confirm your account.' });
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
+                // Send confirmation email
+                AuthEmail.sendConfirmationEmail({
+                    email: user.email,
+                    name: user.name,
+                    token: token.token
+                }).catch(error => {
+                    // Log error but don't fail the registration
+                    console.error('Failed to send confirmation email:', error);
+                });
+
+                return sendSuccess(res, 'Account created successfully. Please check your email to confirm your account', 
+                    { user: user._id, name: user.name, email: user.email }, 201) 
+
+            } catch (error) {
+                throw new AppError('Failed to create account', 500, 'ACCOUNT_CREATION_FAILED')
+            } finally {
+                await session.endSession();
+            }
+    })
 
 
-    static confirmAccount = async (req: Request, res: Response) => {
-        try {
+    static confirmAccount = asyncHandler(async(req: Request, res: Response) => {
             const { token } = req.body
 
             // Validation: token is required
-            if (!token) {
-                return res.status(400).json({ message: 'Token is required' });
-            } 
+            if (!token?.trim()) {
+                throw new ValidationError('Token is required')
+            }
             
-            // Find token in BD
-            const tokenExists = await Token.findOne({token})
+            // Find token in database
+            const tokenExists = await Token.findOne({token : token.trim()})
             if(!tokenExists) {
-                return res.status(401).json({ message: 'Invalid or expired token' });
+                throw new UnauthorizedError('Invalid or expired token')
             }
 
-            // Confirm user
+            // Find user by token
             const user = await User.findById(tokenExists.user)
             if(!user){
-               return res.status(404).json({ message: 'User not found' });
+                throw new NotFoundError('User not found')
             }
-            user.confirmed = true
 
-            await Promise.allSettled([user.save(), Token.deleteOne({_id:tokenExists.id})])
+            // Check if user is already confirmed
+            if (user.confirmed) {
+                // Clean up the token anyway
+                await Token.deleteOne({ _id: tokenExists._id });
+                return sendSuccess(res, 'Account is already confirmed');
+            }
 
-            return res.status(200).json({ message: 'Account confirmed successfully' });
+            // Confirm user account using transaction
+            const session = await User.startSession();
+            try {
+                await session.withTransaction(async () => {
+                    // Update user confirmation status
+                    await User.findByIdAndUpdate(
+                        user._id, { confirmed: true }, { session }
+                    );
 
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
+                    // Delete the confirmation token
+                    await Token.deleteOne({ _id: tokenExists._id }, { session });
+                })
+
+                return sendSuccess(res, 'Account confirmed successfully', {
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        confirmed: true
+                    }
+                });
+            } catch (error) {
+                throw new AppError('Failed to confirm account', 500, 'CONFIRMATION_FAILED');
+            } finally {
+                await session.endSession();
+            }
+    })
 
 
 

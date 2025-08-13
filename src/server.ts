@@ -13,6 +13,7 @@ import { connectDB } from './config/db';
 import authRoutes from './routes/AuthRoutes'
 import projectRoutes from './routes/ProjectRoutes';
 import { setupSwagger } from './docs/swagger';
+import { errorHandler } from './middleware/errorHandler';
 
 
 connectDB();
@@ -32,5 +33,5 @@ setupSwagger(app)
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/projects', projectRoutes);
-
+app.use(errorHandler);
 export default app;
