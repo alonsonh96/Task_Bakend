@@ -18,9 +18,8 @@ interface JwtPayload {
 
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction) : Promise <void> => {
 
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
+    const token = req.cookies?.accessToken;
+    
     if (!token) {
         res.status(401).json({
             success: false,
@@ -67,6 +66,9 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 
         next()
     } catch (error) {
+        // Clean invalid cookie
+        clearAuthCookie(res)
+
         res.status(403).json({
             success: false,
             message: 'Token inválido o expirado'
@@ -74,3 +76,42 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         return
     }
 }
+
+
+// Función helper para establecer cookies de autenticación
+export const setAuthCookie = (res: Response, token: string): void => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  res.cookie('accessToken', token, {
+    httpOnly: true,           // Previene acceso desde JavaScript
+    secure: isProduction,     // Solo HTTPS en producción
+    sameSite: 'strict',       // Protección CSRF
+    maxAge: 24 * 60 * 60 * 1000, // 24 horas
+    path: '/'                 // Disponible en toda la app
+  });
+};
+
+
+// Función helper para limpiar cookies de autenticación
+export const clearAuthCookie = (res: Response): void => {
+  res.clearCookie('accessToken', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/'
+  });
+};
+
+
+// Middleware adicional para refresh tokens (opcional)
+export const setRefreshCookie = (res: Response, refreshToken: string): void => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+    path: '/auth/refresh' // Solo disponible en endpoint de refresh
+  });
+};

@@ -6,5 +6,6 @@ export interface ProjectsDTO {
   projectName: string;
   clientName: string;
   description: string;
+  manager: string;
   tasks: TaskDTO[];
 }

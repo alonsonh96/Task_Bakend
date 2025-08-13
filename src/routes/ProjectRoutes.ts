@@ -10,6 +10,8 @@ import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
+router.use(authenticateToken)
+
 router.param('projectId', validateProjectExists)
 router.param('taskId', async (req, res, next, id) => {
     await validateTaskExists(req, res, async () => {

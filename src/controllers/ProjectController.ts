@@ -8,12 +8,13 @@ export class ProjectController {
     static getAllProjects = async(req: Request, res:Response) => {
         try {
             // Retrieve all projects and populate their associated tasks
-            const projects = await Project.find().populate('tasks');
+            const projects = await Project.find({$or: [{manager: {$in: req.user._id}}]}).populate('tasks');
             const projectDTOs: ProjectsDTO[] = projects.map(project => ({
                 _id: String(project._id),
                 projectName: project.projectName,
                 clientName: project.clientName,
                 description: project.description,
+                manager: String(project.manager),
                 tasks: project.tasks.map((task: any) => ({
                     _id: String(task._id),
                     name: task.name,
@@ -31,17 +32,25 @@ export class ProjectController {
     } 
 
     
-    static getProjectById = async(req: Request, res: Response) => {
+    static getProjectById = async (req: Request, res: Response) => {
         try {
+            if (req.project.manager.toString() !== req.user._id.toString()) {
+                return res.status(401).json({ message: 'Action not valid' })
+            }
             return res.status(200).json(req.project);
         } catch (error) {
-            res.status(500).json({ message: 'Error fetching project by ID', error });
+            return res.status(500).json({ message: 'Error fetching project by ID', error });
         }
     }
 
     static createProject = async(req: Request, res: Response) => {
-        const project = new Project(req.body);
+
+        const { projectName, clientName, description } = req.body
+        const { _id } = req.user
+        
         try {
+            const project = new Project({projectName, clientName, description, manager: _id});
+
             const saveProject = await project.save();
 
             return res.status(201).json({
@@ -49,12 +58,16 @@ export class ProjectController {
                 data: saveProject
             });
         } catch (error) {
-            res.status(500).json({ message: 'Error creating project', error });
+            return res.status(500).json({ message: 'Error creating project', error });
         }
     }
 
     static updateProjectById = async(req: Request, res: Response) => {
         try {
+            if (req.project.manager.toString() !== req.user._id.toString()) {
+                return res.status(401).json({ message: 'Action not valid' })
+            }
+
             const { projectId } = req.params;
             const updatedProject = await Project.findByIdAndUpdate(projectId, req.body, {
                 new: true,
@@ -73,6 +86,10 @@ export class ProjectController {
 
     static deleteProjectById = async(req:Request, res:Response) => {
         try {
+            if (req.project.manager.toString() !== req.user._id.toString()) {
+                return res.status(401).json({ message: 'Action not valid' })
+            }
+
             const { projectId } = req.params
             // Elimina las tareas asociadas
             await Task.deleteMany({ project: projectId });

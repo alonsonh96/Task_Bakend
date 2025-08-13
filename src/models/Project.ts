@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { Document, PopulatedDoc } from 'mongoose';
 import { ITask } from './Task';
+import { IUser } from './User';
 const { Schema } = mongoose;
 
 // Define the type for the Project document
@@ -11,6 +12,7 @@ export interface IProject extends Document {
   clientName: string;
   description: string;
   tasks: PopulatedDoc<ITask & Document>[]; // Array of tasks associated with the project
+  manager: PopulatedDoc<IUser & Document>;
 }
 
 
@@ -31,6 +33,10 @@ const ProjectSchema = new Schema<IProject>({
         required: true,
         trim: true
     },
+    manager: {
+        type: Schema.Types.ObjectId,
+        ref: 'User'
+    }
 }, {
     timestamps: true, // Automatically manage createdAt and updatedAt fields
     toJSON: { virtuals: true },

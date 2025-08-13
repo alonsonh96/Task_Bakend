@@ -6,7 +6,7 @@ import Token from '../models/Token';
 import { generateToken } from '../utils/token';
 import { AuthEmail } from '../emails/AuthEmail';
 import { generateAccessToken } from '../utils/jwt';
-
+import { clearAuthCookie, setAuthCookie } from '../middleware/auth';
 
 
 export class AuthController {
@@ -119,11 +119,13 @@ export class AuthController {
             if(!isPasswordCorrect) return res.status(401).json({ error: 'Password incorrect'})
 
             const accessToken = generateAccessToken({ id: user.id })
+            setAuthCookie(res, accessToken)
 
-            return res.status(201).json({message: 'User autenticated successfully', accessToken})
+            return res.status(201).json({message: 'User autenticated successfully'})
 
         } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
+            clearAuthCookie(res)
+            return res.status(500).json({ message: 'Internal server error' });
         }
     }
 
