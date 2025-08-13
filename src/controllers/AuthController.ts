@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
+import Token from '../models/Token';
 import { User } from '../models/User';
 import { checkPassword, hashPassword } from '../utils/auth';
 import { CreateAccountDTO } from '../dtos/user.dto';
-import Token from '../models/Token';
 import { generateToken } from '../utils/token';
 import { AuthEmail } from '../emails/AuthEmail';
-import { generateAccessToken } from '../utils/jwt';
-import { clearAuthCookie, setAuthCookie } from '../middleware/auth';
+import { clearAuthCookie, clearRefreshCookie, generateAccessToken, generateRefreshToken, setAuthCookie, setRefreshCookie } from '../utils/jwt';
+import jwt from "jsonwebtoken"
 
 
 export class AuthController {
@@ -118,10 +118,20 @@ export class AuthController {
             const isPasswordCorrect = await checkPassword(password, user.password)
             if(!isPasswordCorrect) return res.status(401).json({ error: 'Password incorrect'})
 
-            const accessToken = generateAccessToken({ id: user.id })
+            const accessToken = generateAccessToken({ id: user.id.toString() })
+            const refreshToken = generateRefreshToken({ id: user.id.toString() })
             setAuthCookie(res, accessToken)
+            setRefreshCookie(res, refreshToken)
 
-            return res.status(201).json({message: 'User autenticated successfully'})
+            return res.status(201).json({
+                success: true,
+                message: 'User autenticated successfully',
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email
+                }
+            });
 
         } catch (error) {
             clearAuthCookie(res)
@@ -284,4 +294,85 @@ export class AuthController {
     }
 
 
+    static refreshToken = async(req: Request, res: Response) => {
+        try {
+            const refreshToken = req.cookies.refreshToken
+            if(!refreshToken) return res.status(401).json({ message: 'Refresh token required'})
+            
+            // Verify refresh token
+            const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { id: string }
+            if (!decoded.id) {
+                clearAuthCookie(res);
+                clearRefreshCookie(res);
+
+                return res.status(403).json({
+                    success: false,
+                    message: 'Update invalid token: missing user information',
+                    error: 'INVALID_REFRESH_PAYLOAD'
+                });
+            }
+
+            // Verify that the user still exists
+            const user = await User.findById(decoded.id).select('_id name email').lean();
+            if (!user) {
+                // Clean invalid cookies
+                clearAuthCookie(res);
+                clearRefreshCookie(res);
+
+                res.status(403).json({
+                    success: false,
+                    message: 'User not found',
+                    error: 'USER_NOT_FOUND'
+                });
+                return;
+            }
+
+            // 🔄 IMPORTANT: Generate BOTH new tokens (token rotation)
+            const newAccessToken = generateAccessToken({ id: decoded.id });
+            const newRefreshToken = generateRefreshToken({ id: decoded.id });
+
+            // Set both cookies
+            setAuthCookie(res, newAccessToken);
+            setRefreshCookie(res, newRefreshToken);
+
+            return res.status(200).json({
+                success: true,
+                message: 'Access token refreshed',
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email
+                }
+            });
+        } catch (error) {
+            //Clean invalid cookies
+            clearAuthCookie(res)
+            clearRefreshCookie(res)
+
+            // Diferent error types of JWT
+            if (error instanceof jwt.JsonWebTokenError) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Invalid refresh token',
+                    error: 'INVALID_TOKEN'
+                });
+            }
+
+            if (error instanceof jwt.TokenExpiredError) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Refresh token expired',
+                    error: 'TOKEN_EXPIRED'
+                });
+            }
+
+            return res.status(500).json({
+                success: false,
+                message: 'Internal server error',
+                error: 'INTERNAL_ERROR'
+            });
+        }
+    }
+
+    
 }

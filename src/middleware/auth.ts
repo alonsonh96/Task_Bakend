@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken"
 import { IUser, User } from "../models/User";
+import { clearAuthCookie } from "../utils/jwt";
 
 
 declare global {
@@ -23,7 +24,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     if (!token) {
         res.status(401).json({
             success: false,
-            message: 'Token de acceso requerido'
+            message: 'Access token required'
         });
         return
     }
@@ -31,10 +32,10 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     // Verify that JWT_SECRET exists
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-        console.error('JWT_SECRET no está configurado en las variables de entorno');
+        console.error('JWT_SECRET is not set in environment variables');
         res.status(500).json({
             success: false,
-            message: 'Error interno del servidor'
+            message: 'Internal server error'
         });
         return;
     }
@@ -43,9 +44,9 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     try {
         const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
         if (!decoded.id) {
-            res.status(403).json({
+            res.status(401).json({
                 success: false,
-                message: 'Token inválido: falta información del usuario',
+                message: 'Invalid token: missing user information',
                 error: 'INVALID_TOKEN_PAYLOAD'
             });
             return;
@@ -56,7 +57,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         if (!user) {
             res.status(403).json({
                 success: false,
-                message: 'Usuario no encontrado',
+                message: 'User not found',
                 error: 'USER_NOT_FOUND'
             });
             return;
@@ -69,49 +70,10 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         // Clean invalid cookie
         clearAuthCookie(res)
 
-        res.status(403).json({
+        res.status(401).json({
             success: false,
-            message: 'Token inválido o expirado'
+            message: 'Invalid or expired token'
         });
         return
     }
 }
-
-
-// Función helper para establecer cookies de autenticación
-export const setAuthCookie = (res: Response, token: string): void => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  res.cookie('accessToken', token, {
-    httpOnly: true,           // Previene acceso desde JavaScript
-    secure: isProduction,     // Solo HTTPS en producción
-    sameSite: 'strict',       // Protección CSRF
-    maxAge: 24 * 60 * 60 * 1000, // 24 horas
-    path: '/'                 // Disponible en toda la app
-  });
-};
-
-
-// Función helper para limpiar cookies de autenticación
-export const clearAuthCookie = (res: Response): void => {
-  res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/'
-  });
-};
-
-
-// Middleware adicional para refresh tokens (opcional)
-export const setRefreshCookie = (res: Response, refreshToken: string): void => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-    path: '/auth/refresh' // Solo disponible en endpoint de refresh
-  });
-};

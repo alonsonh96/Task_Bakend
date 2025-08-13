@@ -51,4 +51,8 @@ router.post('/update-password/:token',
     AuthController.updatePasswordWithToken
 )
 
+router.post('/refresh',
+    AuthController.refreshToken
+)
+
 export default router;
