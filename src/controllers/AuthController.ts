@@ -144,7 +144,7 @@ export class AuthController {
             // Check if account is confirmed
             if (!user.confirmed) {
                 await this.checkConfirmationRateLimit(user.id)
-                await this.generateAndSendConfirmationToken(user)
+                await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
                 throw new AppError(
                     'Account not confirmed. We have sent a confirmation email',
                     403,
@@ -186,65 +186,28 @@ export class AuthController {
             await this.checkConfirmationRateLimit(user.id)
 
             // Clean up old tokens for this user
-            await this.generateAndSendConfirmationToken(user)
+            await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
 
             return sendSuccess(res, 'A new confirmation code has been sent to your email')
     })
 
 
-    static forgotPassword = async (req: Request, res: Response) => {
-        try {
+    static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
             const { email } = req.body
 
-            // Email exists
-            if (!email) return res.status(404).json({ message: 'Email is required' });
+            if(!email?.trim()) throw new ValidationError('Email is required')
 
-            // Check if user exists
-            const user = await User.findOne({ email });
-            if (!user) return res.status(404).json({ message: 'User is not registered' })
+            // Normalize email and find user
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await User.findOne({ email: normalizedEmail });
+            if (!user) return sendSuccess(res, 'If your email is registered, you will receive password reset instructions');
 
             // Check for existing recent token to prevent spam
-            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-            const existingToken = await Token.findOne({ 
-                user: user.id,
-                createdAt: { $gt: fiveMinutesAgo }
-            });
-
-            if (existingToken) return res.status(429).json({ message : 
-                'A confirmation code was already sent recently. Please check your email or try again later.'}
-            );
-
-            // Clean up old tokens for this user
-            await Token.deleteMany({ user: user.id });
-
-            // Generate token
-            const token = new Token({
-                token: generateToken(),
-                user: user.id
-            })
-
-            await token.save()
-
-            // Send password reset email (handle errors gracefully)
-            try {
-                await AuthEmail.sendPasswordResetToken({
-                    email: user.email,
-                    name: user.name,
-                    token: token.token
-                });
-            } catch (emailError) {
-                console.error('Failed to send password reset email:', emailError);
-                return res.status(500).json({
-                    error: 'Failed to send password reset email'
-                });
-            }   
-
-            return res.status(200).json({ message: 'Check your email for instructions' });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
+            await this.checkConfirmationRateLimit(user.id)
+            await this.generateAndSendConfirmationToken(user, AuthEmail.sendPasswordResetToken)
+ 
+            return sendSuccess(res, 'Password reset instructions have been sent to your email');
+    })
 
 
     static validateToken = async (req: Request, res: Response) => {
@@ -376,7 +339,10 @@ export class AuthController {
     }
 
 
-    private static generateAndSendConfirmationToken = async (user: any) => {
+    private static generateAndSendConfirmationToken = async (
+        user: any,
+        emailFn: (params: { email: string, name: string, token: string }) => Promise<void>
+    ) => {
         // Clean up old tokens for this user
         await Token.deleteMany({ user: user._id });
 
@@ -391,7 +357,7 @@ export class AuthController {
 
         // Send confirmation email (handle errors gracefully)
         try {
-            await AuthEmail.sendConfirmationEmail({
+            await emailFn({
                 email: user.email,
                 name: user.name,
                 token: token.token
