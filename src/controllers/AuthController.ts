@@ -227,29 +227,47 @@ export class AuthController {
     })
 
 
-    static updatePasswordWithToken = async (req: Request, res: Response) => {
-        try {
+    static updatePasswordWithToken = asyncHandler(async (req: Request, res: Response) => {
             const { token } = req.params
             const { password } = req.body
 
-            // Validation: token is required
-            if (!token) return res.status(400).json({ message: 'Token is required' });
+            if(!token.trim()) throw new ValidationError('Password reset token is required')
+            if(!password.trim()) throw new ValidationError('New password is required')
 
             // Find token in BD
             const tokenExists = await Token.findOne({token})
-            if(!tokenExists) return res.status(404).json({ message: 'Invalid or expired token' });
+            if(!tokenExists) throw new AppError('Invalid or expired password reset token', 401, 'INVALID_OR_EXPIRED_TOKEN')
 
+            // Find user associated with the token
             const user = await User.findById({ _id: tokenExists.user })
-            user.password = await hashPassword(password)
+            if(!user) throw new NotFoundError('User associated with this token no longer exists')
+            // Hash the new password
+            const hashedPassword = await hashPassword(password)
 
-            await Promise.allSettled([user.save(), tokenExists.deleteOne()])
+            const session = await User.startSession()
+            try {
+                await session.withTransaction(async () => {
+                    // Update user password
+                    await User.findByIdAndUpdate(user.id, {password: hashedPassword}, { session, runValidators: true })
+                    // Delete ALL password reset tokens for this user (security)
+                    await Token.deleteMany({ user: user._id }, { session })
+                })
 
-            return res.status(200).json({ message: 'Password update successfully' });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
+                return sendSuccess(res, 
+                    'Password has been updated successfully. You can now login with your new password', {
+                        user: {
+                            id: user._id,
+                            email: user.email,
+                            name: user.name
+                        }
+                    })
+            } catch (error) {
+                console.error('Error updating password:', error);
+                throw new AppError('Failed to update password', 500, 'PASSWORD_UPDATE_FAILED');
+            } finally {
+                await session.endSession()
+            }
+    })
 
 
     static refreshToken = async(req: Request, res: Response) => {
