@@ -8,7 +8,7 @@ import { AuthEmail } from '../emails/AuthEmail';
 import { clearAuthCookie, clearRefreshCookie, generateAccessToken, generateRefreshToken, setAuthCookie, setRefreshCookie } from '../utils/jwt';
 import jwt from "jsonwebtoken"
 import { asyncHandler } from '../utils/asyncHandler';
-import { AppError, DuplicateError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors';
+import { AppError, DuplicateError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors';
 import { sendSuccess } from '../utils/responses';
 
 
@@ -16,6 +16,7 @@ export class AuthController {
 
     static createAccount = asyncHandler(async(req : Request, res: Response) => {
             const { name, email, password } : CreateAccountDTO = req.body;
+            if(!name.trim() || !email.trim() || !password.trim()) throw new ValidationError('Name, email, and password are required')
 
             // Normalize email
             const normalizedEmail = email.toLowerCase().trim();
@@ -270,40 +271,20 @@ export class AuthController {
     })
 
 
-    static refreshToken = async(req: Request, res: Response) => {
+    static refreshToken = asyncHandler(async(req: Request, res: Response) => {
         try {
             const refreshToken = req.cookies.refreshToken
-            if(!refreshToken) return res.status(401).json({ message: 'Refresh token required'})
+            if(!refreshToken) throw new UnauthorizedError('Refresh token required')
             
             // Verify refresh token
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { id: string }
-            if (!decoded.id) {
-                clearAuthCookie(res);
-                clearRefreshCookie(res);
-
-                return res.status(403).json({
-                    success: false,
-                    message: 'Update invalid token: missing user information',
-                    error: 'INVALID_REFRESH_PAYLOAD'
-                });
-            }
+            if (!decoded.id) throw new ForbiddenError('Invalid token: missing user information')
 
             // Verify that the user still exists
             const user = await User.findById(decoded.id).select('_id name email').lean();
-            if (!user) {
-                // Clean invalid cookies
-                clearAuthCookie(res);
-                clearRefreshCookie(res);
+            if (!user) throw new NotFoundError('User not found');
 
-                res.status(403).json({
-                    success: false,
-                    message: 'User not found',
-                    error: 'USER_NOT_FOUND'
-                });
-                return;
-            }
-
-            // 🔄 IMPORTANT: Generate BOTH new tokens (token rotation)
+            // Generate BOTH new tokens (token rotation)
             const newAccessToken = generateAccessToken({ id: decoded.id });
             const newRefreshToken = generateRefreshToken({ id: decoded.id });
 
@@ -311,44 +292,20 @@ export class AuthController {
             setAuthCookie(res, newAccessToken);
             setRefreshCookie(res, newRefreshToken);
 
-            return res.status(200).json({
-                success: true,
-                message: 'Access token refreshed',
+            return sendSuccess(res, 'Access token refreshed', {
                 user: {
                     id: user._id,
                     name: user.name,
                     email: user.email
                 }
-            });
+            })
         } catch (error) {
             //Clean invalid cookies
             clearAuthCookie(res)
             clearRefreshCookie(res)
-
-            // Diferent error types of JWT
-            if (error instanceof jwt.JsonWebTokenError) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Invalid refresh token',
-                    error: 'INVALID_TOKEN'
-                });
-            }
-
-            if (error instanceof jwt.TokenExpiredError) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'Refresh token expired',
-                    error: 'TOKEN_EXPIRED'
-                });
-            }
-
-            return res.status(500).json({
-                success: false,
-                message: 'Internal server error',
-                error: 'INTERNAL_ERROR'
-            });
+            throw error;
         }
-    }
+    })
 
 
     private static generateAndSendConfirmationToken = async (
