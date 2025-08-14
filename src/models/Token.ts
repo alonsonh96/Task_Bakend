@@ -20,6 +20,8 @@ const tokenSchema : Schema = new Schema({
         default: Date.now(),
         expires: "10m"
     }
+}, {
+    timestamps: true
 })
 
 const Token = mongoose.model<IToken>('Token', tokenSchema)

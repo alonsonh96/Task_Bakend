@@ -128,7 +128,6 @@ export class AuthController {
     })
 
 
-
     static loginAccount = asyncHandler(async(req: Request, res: Response) => {
             const { email, password } = req.body
             
@@ -144,7 +143,8 @@ export class AuthController {
 
             // Check if account is confirmed
             if (!user.confirmed) {
-                await this.handleUnconfirmedAccount(user)
+                await this.checkConfirmationRateLimit(user.id)
+                await this.generateAndSendConfirmationToken(user)
                 throw new AppError(
                     'Account not confirmed. We have sent a confirmation email',
                     403,
@@ -167,87 +167,29 @@ export class AuthController {
             )
     })
 
-    private static handleUnconfirmedAccount = async (user: any) => {
-        try {
-            // Check if there's already a valid token
-            let token = await Token.findOne({ user: user._id });
 
-            // If no token exists or token is old, create a new one
-            if (!token){
-                // Clean up any old tokens for this user
-                await Token.deleteMany({ user: user._id });
-
-                // Create new confirmation token
-                token = new Token({
-                    user: user.id,
-                    token: generateToken(),
-                    createdAt: Date.now()
-                });
-
-                await token.save();
-            }
-
-            // Send confirmation email (async, don't block login response)
-            AuthEmail.sendConfirmationEmail({
-                email: user.email,
-                name: user.name,
-                token: token.token
-            }).catch(error => { console.error(`Error sending confirmation email to ${user.email}`, error) })
-            
-        } catch (error) {
-            console.error('Error handling unconfirmed account:', error);
-        }
-    }
-
-
-    static requestConfirmationCode = async(req: Request, res: Response) => {
-        try {
+    static requestConfirmationCode = asyncHandler(async(req: Request, res: Response) => {
             const { email } = req.body
 
-            // Email exists
-            if (!email) return res.status(404).json({ message: 'Email is required'});
+            // Validate email is provided
+            if(!email?.trim()) throw new ValidationError('Email is required')
 
-            // Check if user exists
-            const user = await User.findOne({email});
-            if(!user) return res.status(404).json({message: 'User is not registered'})
+            // Normalize email and find user
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await User.findOne({email : normalizedEmail});
+            if(!user) throw new NotFoundError('User is not registered')
             
             // Check if user is already confirmed
-            if(user.confirmed) return res.status(409).json({message: 'The user is already confirmed'}) 
+            if(user.confirmed) throw new AppError('The user is already confirmed', 409, 'ALREADY_CONFIRMED')
 
             // Check for existing recent token to prevent spam
-            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-            const existingToken = await Token.findOne({ 
-                user: user.id,
-                createdAt: { $gt: fiveMinutesAgo }
-            });
-
-            if (existingToken) return res.status(429).json({ message : 
-                'A confirmation code was already sent recently. Please check your email or try again later.'}
-            );
+            await this.checkConfirmationRateLimit(user.id)
 
             // Clean up old tokens for this user
-            await Token.deleteMany({ user: user.id });
+            await this.generateAndSendConfirmationToken(user)
 
-            // Generate token
-            const token = new Token({
-                token: generateToken(),
-                user: user.id
-            })
-
-            await AuthEmail.sendConfirmationEmail({
-                email: user.email,
-                name: user.name,
-                token: token.token
-            })
-
-            await Promise.allSettled([user.save(), token.save()])
-            return res.status(200).json({ message: 'A new token has been sent' });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
-
+            return sendSuccess(res, 'A new confirmation code has been sent to your email')
+    })
 
 
     static forgotPassword = async (req: Request, res: Response) => {
@@ -303,7 +245,6 @@ export class AuthController {
             res.status(500).json({ message: 'Internal server error' });
         }
     }
-
 
 
     static validateToken = async (req: Request, res: Response) => {
@@ -432,6 +373,52 @@ export class AuthController {
                 error: 'INTERNAL_ERROR'
             });
         }
+    }
+
+
+    private static generateAndSendConfirmationToken = async (user: any) => {
+        // Clean up old tokens for this user
+        await Token.deleteMany({ user: user._id });
+
+        // Generate new confirmation token
+        const token = new Token({
+            user: user._id,
+            token: generateToken(),
+            createdAt: Date.now()
+        });
+
+        await token.save();
+
+        // Send confirmation email (handle errors gracefully)
+        try {
+            await AuthEmail.sendConfirmationEmail({
+                email: user.email,
+                name: user.name,
+                token: token.token
+            });
+        } catch (emailError) {
+            console.error(`Failed to send confirmation email to ${user.email}:`, emailError);
+            // Don't fail the request, but maybe add to a retry queue
+            throw new AppError(
+                'Token generated but failed to send email. Please try again.',
+                500,
+                'EMAIL_SEND_FAILED'
+            );
+        }
+    }
+
+
+    private static checkConfirmationRateLimit = async(userId: any) => {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const recentToken  = await Token.findOne({
+            user: userId,
+            createdAt: { $gt: fiveMinutesAgo }
+        });
+
+        if (recentToken ) throw new AppError(
+            'A confirmation code was already sent recently. Please check your email or try again later',
+            429,
+            'RATE_LIMITED')
     }
 
     

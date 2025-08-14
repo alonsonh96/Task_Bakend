@@ -20,9 +20,15 @@ export class ValidationError extends AppError {
     } 
 }
 
-export class DuplicateError extends AppError {
-    constructor(message: string = 'Resource already exists') {
-        super(message, 409, 'DUPLICATE_RESOURCE');
+export class UnauthorizedError extends AppError {
+    constructor(message: string = 'Unauthorized access') {
+        super(message, 401, 'UNAUTHORIZED');
+    }
+}
+
+export class ForbiddenError extends AppError {
+    constructor(message: string = 'Forbidden') {
+        super(message, 403, 'FORBIDDEN');
     }
 }
 
@@ -32,9 +38,15 @@ export class NotFoundError extends AppError {
     }
 }
 
-export class UnauthorizedError extends AppError {
-    constructor(message: string = 'Unauthorized access') {
-        super(message, 401, 'UNAUTHORIZED');
+export class DuplicateError extends AppError {
+    constructor(message: string = 'Resource already exists') {
+        super(message, 409, 'DUPLICATE_RESOURCE');
+    }
+}
+
+export class UnprocessableEntityError extends AppError {
+    constructor(message: string = 'Unprocessable entity') {
+        super(message, 422, 'UNPROCESSABLE_ENTITY');
     }
 }
 
