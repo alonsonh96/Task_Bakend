@@ -210,27 +210,21 @@ export class AuthController {
     })
 
 
-    static validateToken = async (req: Request, res: Response) => {
-        try {
-            const { token } = req.body
+    static validateToken = asyncHandler(async (req: Request, res: Response) => {
+        const { token } = req.body
+        // Validation: token is required
+        if(!token.trim()) throw new ValidationError('Password reset token is required')
 
-            // Validation: token is required
-            if (!token) {
-                return res.status(400).json({ message: 'Token is required' });
-            } 
-            
-            // Find token in BD
-            const tokenExists = await Token.findOne({token})
-            if(!tokenExists) {
-                return res.status(404).json({ message: 'Invalid or expired token' });
-            }
+        // Find token in BD
+        const tokenExists = await Token.findOne({ token })
+        if (!tokenExists) throw new AppError('Invalid or expired password reset token', 401, 'INVALID_OR_EXPIRED_TOKEN');
 
-            return res.status(200).json({ message: 'Valid token, set your new password' });
-
-        } catch (error) {
-            res.status(500).json({ message: 'Internal server error' });
-        }
-    }
+        // return res.status(200).json({ message: 'Valid token, set your new password' });
+        return sendSuccess(res, 'Valid password reset token. You can now set your new password.', {
+            tokenValid: true,
+            user: tokenExists.user
+        })
+    })
 
 
     static updatePasswordWithToken = async (req: Request, res: Response) => {
