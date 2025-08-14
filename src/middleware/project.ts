@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import Project, { IProject } from '../models/Project';
+import { NotFoundError, ValidationError } from '../utils/errors';
 
 declare global {
     namespace Express {
@@ -13,14 +14,15 @@ declare global {
 export async function validateProjectExists(req: Request, res: Response, next: NextFunction) {
     try {
         const { projectId } = req.params;
+        if(!projectId || !projectId.trim()) throw new ValidationError('Project ID is required')
+
         const project = await Project.findById(projectId).populate('tasks');
-        if(!project) {
-            return res.status(404).json({ message: 'Project not found' });
-        }
+        if(!project) throw new NotFoundError('Project not found')
+
         req.project = project; // Attach the project to the request object for further use
         // Optionally, you can also attach the project ID to the request object
         next(); // Proceed to the next middleware or route handler
     } catch (error) {
-        res.status(500).json({ message: 'Error validating project existence'});
+        return next(error);
     }
 }

@@ -43,10 +43,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     } catch (error) {
         // Clean invalid cookie
         clearAuthCookie(res);
-
-        if (error instanceof AppError) {
-            return next(error);
-        }
-        return next(new UnauthorizedError('Invalid or expired token'));
+        return next(error);
     }
 }
