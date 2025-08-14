@@ -129,57 +129,73 @@ export class AuthController {
 
 
 
-    static loginAccount = async (req: Request, res: Response) => {
-        try {
+    static loginAccount = asyncHandler(async(req: Request, res: Response) => {
             const { email, password } = req.body
             
-            const user = await User.findOne({email})
-            if(!user) return res.status(404).json({ message : 'User not found' });
+            if(!email.trim() || !password) throw new ValidationError('Email and password are required')
 
-            // Verify if the account is confirmed
-            if (!user.confirmed) {
-                let token = await Token.findOne({ user: user.id });
+            // Normalize email and find user (include password field)
+            const user = await User.findOne({email: email.toLowerCase().trim()})
+            if(!user) throw new NotFoundError('User not found')
 
-                if (!token) {
-                    token = new Token({
-                        user: user.id,
-                        token: generateToken(),
-                        createdAt: Date.now()
-                    });
-                    await token.save()
-                }
-
-                AuthEmail.sendConfirmationEmail({
-                    email: user.email,
-                    name: user.name,
-                    token: token.token
-                }).catch(error => {console.error(`Error sending confirmation email to ${user.email}`, error)})
-
-                return res.status(403).json({ message: 'Account not confirmed. We have sent a confirmation email' })
-            }
-
-            // Validate the password
+            // Validate password first
             const isPasswordCorrect = await checkPassword(password, user.password)
-            if(!isPasswordCorrect) return res.status(401).json({ error: 'Password incorrect'})
+            if(!isPasswordCorrect) throw new UnauthorizedError('Invalid credentials')
+
+            // Check if account is confirmed
+            if (!user.confirmed) {
+                await this.handleUnconfirmedAccount(user)
+                throw new AppError(
+                    'Account not confirmed. We have sent a confirmation email',
+                    403,
+                    'ACCOUNT_NOT_CONFIRMED'
+                );
+            }
 
             const accessToken = generateAccessToken({ id: user.id.toString() })
             const refreshToken = generateRefreshToken({ id: user.id.toString() })
             setAuthCookie(res, accessToken)
             setRefreshCookie(res, refreshToken)
 
-            return res.status(201).json({
-                success: true,
-                message: 'User autenticated successfully',
-                user: {
-                    id: user._id,
-                    name: user.name,
-                    email: user.email
-                }
-            });
+            return sendSuccess(res, 'User authenticated successfully',
+                {user: {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        confirmed: user.confirmed
+                }}
+            )
+    })
 
+    private static handleUnconfirmedAccount = async (user: any) => {
+        try {
+            // Check if there's already a valid token
+            let token = await Token.findOne({ user: user._id });
+
+            // If no token exists or token is old, create a new one
+            if (!token){
+                // Clean up any old tokens for this user
+                await Token.deleteMany({ user: user._id });
+
+                // Create new confirmation token
+                token = new Token({
+                    user: user.id,
+                    token: generateToken(),
+                    createdAt: Date.now()
+                });
+
+                await token.save();
+            }
+
+            // Send confirmation email (async, don't block login response)
+            AuthEmail.sendConfirmationEmail({
+                email: user.email,
+                name: user.name,
+                token: token.token
+            }).catch(error => { console.error(`Error sending confirmation email to ${user.email}`, error) })
+            
         } catch (error) {
-            clearAuthCookie(res)
-            return res.status(500).json({ message: 'Internal server error' });
+            console.error('Error handling unconfirmed account:', error);
         }
     }
 
