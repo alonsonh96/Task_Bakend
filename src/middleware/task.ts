@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import Task, { ITask } from '../models/Task';
+import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors';
 
 declare global {
     namespace Express {
@@ -13,21 +14,26 @@ declare global {
 export async function validateTaskExists(req: Request, res: Response, next: NextFunction) {
     try {
         const { taskId } = req.params;
+        if(!taskId?.trim()) throw new ValidationError('Task ID is required')
+
         const task = await Task.findById(taskId);
-        if(!task) {
-            return res.status(404).json({ message: 'Task not found' });
-        }
+        if(!task) throw new NotFoundError('Task not found')
+
         req.task = task;
         next();
     } catch (error) {
-        res.status(500).json({ message: 'Error validating task existence'});
+        return next(error);
     }
 }
 
 
 export async function taskBelongsProject(req: Request, res: Response, next: NextFunction) {
-    if (req.task.project.toString() !== req.project.id.toString()) {
-        return res.status(403).json({ message: 'Forbidden action: Task does not belong to this project' });
+    try {
+        if (req.task.project.toString() !== req.project.id.toString()){
+            throw new ForbiddenError('Task does not belong to this project')
+        }
+        next()
+    } catch (error) {
+        return next(error)
     }
-    next();
 }
