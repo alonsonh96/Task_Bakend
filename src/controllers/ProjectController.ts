@@ -41,6 +41,7 @@ export class ProjectController {
         return sendSuccess(res, 'Projects fetched successfully', req.project)
     })
 
+
     static createProject = asyncHandler(async(req: Request, res: Response) => {
         // Validate user authentication
         if (!req.user || !req.user._id) throw new UnauthorizedError('User not authenticated')
@@ -58,6 +59,7 @@ export class ProjectController {
         return sendSuccess(res, 'Project created successfully', saveProject, 201 )
     })
 
+    
     static updateProjectById = asyncHandler(async (req: Request, res: Response) => {
         if (req.project.manager.toString() !== req.user._id.toString()) {
             throw new UnauthorizedError('Action not valid')
