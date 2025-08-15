@@ -7,6 +7,7 @@ import { confirmAccountValidators,
     emailAccountValidators, 
     logginAccountValidators, 
     passwordConfirmationValidators} from "../validators/authValidators";
+import { authenticateToken } from "../middleware/auth";
 
 const router = Router();
 
@@ -53,6 +54,11 @@ router.post('/update-password/:token',
 
 router.post('/refresh',
     AuthController.refreshToken
+)
+
+router.get('/user',
+    authenticateToken,
+    AuthController.getUser
 )
 
 export default router;

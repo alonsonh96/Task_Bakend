@@ -308,6 +308,11 @@ export class AuthController {
     })
 
 
+    static getUser = asyncHandler(async(req: Request, res: Response) => {
+        return sendSuccess(res, 'Get user data', req.user)
+    })
+
+
     private static generateAndSendConfirmationToken = async (
         user: any,
         emailFn: (params: { email: string, name: string, token: string }) => Promise<void>
