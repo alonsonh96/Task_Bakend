@@ -313,6 +313,14 @@ export class AuthController {
     })
 
 
+    static logoutUser = asyncHandler(async(req: Request, res: Response) => {
+        clearAuthCookie(res)
+        clearRefreshCookie(res)
+
+        return sendSuccess(res, 'User logged out successfully')
+    })
+
+
     private static generateAndSendConfirmationToken = async (
         user: any,
         emailFn: (params: { email: string, name: string, token: string }) => Promise<void>

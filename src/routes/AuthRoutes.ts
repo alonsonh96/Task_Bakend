@@ -61,4 +61,9 @@ router.get('/user',
     AuthController.getUser
 )
 
+router.post('/logout',
+    authenticateToken,
+    AuthController.logoutUser
+)
+
 export default router;
