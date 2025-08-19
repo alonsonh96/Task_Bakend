@@ -27,10 +27,26 @@ export class TeamMemberController {
         const user = await User.findById(id).select('id').lean()
         if(!user) throw new NotFoundError('User not found')
 
-        await Project.findByIdAndUpdate(req.project.id, {$addToSet: { team: user._id }}, { new: true })
+        await Project.findByIdAndUpdate(req.project.id, {$addToSet: { team: user._id }}, { new: true, runValidators: true })
 
         sendSuccess(res, 'User added successfully')
     })
 
+
+    static removeMemberById = asyncHandler(async(req: Request, res: Response) => {
+        const { id } = req.body
+
+        // Verify user exists
+        const user = await User.findById(id).select('_id name email').lean();
+        if (!user) throw new NotFoundError('User not found')
+
+        // Check if the user is already on the team
+        const isMember = req.project.team.some(memberId => memberId.toString() === id);
+        if(!isMember) throw new NotFoundError('User is not a member of this project');
+        
+        await Project.findByIdAndUpdate(req.project._id, {$pull: {team: id}}, {new:true, runValidators: true})
+
+        sendSuccess(res, 'User remove successfully')
+    })
 
 }
