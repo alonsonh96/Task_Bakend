@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { Document, PopulatedDoc } from 'mongoose';
 import { ITask } from './Task';
 import { IUser } from './User';
@@ -13,6 +13,7 @@ export interface IProject extends Document {
   description: string;
   tasks: PopulatedDoc<ITask & Document>[]; // Array of tasks associated with the project
   manager: PopulatedDoc<IUser & Document>;
+  team: PopulatedDoc<IUser & Document>[];
 }
 
 
@@ -36,7 +37,13 @@ const ProjectSchema = new Schema<IProject>({
     manager: {
         type: Schema.Types.ObjectId,
         ref: 'User'
-    }
+    },
+    team: [
+        {
+            type: Types.ObjectId,
+            ref: 'User'
+        }
+    ]
 }, {
     timestamps: true, // Automatically manage createdAt and updatedAt fields
     toJSON: { virtuals: true },
