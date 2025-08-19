@@ -49,4 +49,13 @@ export class TeamMemberController {
         sendSuccess(res, 'User remove successfully')
     })
 
+
+    static getMembersByProject = asyncHandler(async(req: Request, res: Response) => {
+        const projectId = req.project._id
+        const project = await Project.findById(projectId).populate({path: 'team', select: '_id email name'})
+
+        return res.json(project.team)
+
+    })
+
 }
