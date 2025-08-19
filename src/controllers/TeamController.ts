@@ -54,8 +54,7 @@ export class TeamMemberController {
         const projectId = req.project._id
         const project = await Project.findById(projectId).populate({path: 'team', select: '_id email name'})
 
-        return res.json(project.team)
-
+        sendSuccess(res, 'List of members', project)
     })
 
 }
