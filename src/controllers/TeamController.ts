@@ -34,17 +34,17 @@ export class TeamMemberController {
 
 
     static removeMemberById = asyncHandler(async(req: Request, res: Response) => {
-        const { id } = req.body
+        const { userId } = req.params
 
         // Verify user exists
-        const user = await User.findById(id).select('_id name email').lean();
+        const user = await User.findById(userId).select('_id name email').lean();
         if (!user) throw new NotFoundError('User not found')
 
         // Check if the user is already on the team
-        const isMember = req.project.team.some(memberId => memberId.toString() === id);
+        const isMember = req.project.team.some(memberId => memberId.toString() === userId);
         if(!isMember) throw new NotFoundError('User is not a member of this project');
         
-        await Project.findByIdAndUpdate(req.project._id, {$pull: {team: id}}, {new:true, runValidators: true})
+        await Project.findByIdAndUpdate(req.project._id, {$pull: {team: userId}}, {new:true, runValidators: true})
 
         sendSuccess(res, 'User remove successfully')
     })
@@ -54,7 +54,7 @@ export class TeamMemberController {
         const projectId = req.project._id
         const project = await Project.findById(projectId).populate({path: 'team', select: '_id email name'})
 
-        sendSuccess(res, 'List of members', project)
+        sendSuccess(res, 'List of members', project.team)
     })
 
 }

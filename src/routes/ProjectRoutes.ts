@@ -74,8 +74,8 @@ router.post('/:projectId/team',
     TeamMemberController.addMemberById
 )
 
-router.delete('/:projectId/team',
-    body('id').isMongoId().withMessage('Id not valid'),
+router.delete('/:projectId/team/:userId',
+    validateMongoId('userId'),
     handleInputErrors,
     TeamMemberController.removeMemberById
 )
