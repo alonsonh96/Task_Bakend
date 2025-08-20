@@ -11,7 +11,10 @@ export class ProjectController {
 
     static getAllProjects = asyncHandler(async (req: Request, res: Response) => {
         // Retrieve all projects and populate their associated tasks
-        const projects = await Project.find({ $or: [{ manager: { $in: req.user._id } }] }).populate('tasks');
+        const projects = await Project.find({ $or: [
+                                                { manager: { $in: req.user._id }},
+                                                { team: {$in: req.user._id}}
+                                            ] }).populate('tasks');
         const projectDTOs: ProjectsDTO[] = projects.map(project => ({
             _id: String(project._id),
             projectName: project.projectName,
@@ -35,7 +38,9 @@ export class ProjectController {
 
     
     static getProjectById = asyncHandler(async (req: Request, res: Response) => {
-        if (req.project.manager.toString() !== req.user._id.toString()) {
+        const isManager = req.project.manager.toString() === req.user._id.toString()
+        const isTeamMember = req.project.team.map(memberId => memberId.toString()).includes(req.user._id.toString());
+        if (!isManager && !isTeamMember) {
             throw new UnauthorizedError('Action not valid')
         }
         return sendSuccess(res, 'Projects fetched successfully', req.project)
