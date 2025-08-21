@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import Task from '../models/Task';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/responses';
+import mongoose from 'mongoose';
 
 export class TaskController {
     static createTask = asyncHandler(async (req: Request, res: Response) => {
@@ -52,6 +53,11 @@ export class TaskController {
     static updateStatus = asyncHandler(async (req: Request, res: Response) => {
         const { status } = req.body;
         req.task.status = status;
+        if(status === 'pending'){
+            req.task.completedBy = null
+        }else{
+            req.task.completedBy = req.user._id as mongoose.Types.ObjectId;
+        }
         await req.task.save();
 
         return sendSuccess(res, 'Task update successfully')
