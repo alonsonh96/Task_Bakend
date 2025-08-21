@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import Task, { ITask } from '../models/Task';
-import { ForbiddenError, NotFoundError, ValidationError } from '../utils/errors';
+import { ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors';
 
 declare global {
     namespace Express {
@@ -31,6 +31,20 @@ export async function taskBelongsProject(req: Request, res: Response, next: Next
     try {
         if (req.task.project.toString() !== req.project.id.toString()){
             throw new ForbiddenError('Task does not belong to this project')
+        }
+        next()
+    } catch (error) {
+        return next(error)
+    }
+}
+
+
+export async function hasAuthorization(req: Request, res: Response, next: NextFunction) {
+    const userId = req.user._id.toString();
+    const managerId = req.project.manager.toString();
+    try {
+        if(userId !== managerId){
+            throw new UnauthorizedError('The user does not have the required permissions')
         }
         next()
     } catch (error) {
