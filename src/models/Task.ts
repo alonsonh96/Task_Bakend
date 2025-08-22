@@ -17,7 +17,10 @@ export interface ITask extends Document {
     description: string;
     project: Types.ObjectId; // Reference to the Project
     status: TaskStatus; // Optional status field
-    completedBy: Types.ObjectId
+    completedBy: {
+        user: Types.ObjectId,
+        status: TaskStatus
+    }[]
 }
 
 export const TaskSchema = new Schema<ITask>({
@@ -40,11 +43,20 @@ export const TaskSchema = new Schema<ITask>({
         enum: Object.values(taskStatus),
         default: taskStatus.PENDING // Default status is 'pending'
     },
-    completedBy: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-        default: null
-    }
+    completedBy: [
+        {
+            user: {
+                type: Schema.Types.ObjectId,
+                ref: 'User',
+                default: null
+            },
+            status: {
+                type: String,
+                enum: Object.values(taskStatus),
+                default: taskStatus.PENDING
+            }
+        }
+    ]
 }, {
     timestamps: true // Automatically manage createdAt and updatedAt fields
 })

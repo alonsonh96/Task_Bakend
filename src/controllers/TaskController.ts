@@ -30,7 +30,9 @@ export class TaskController {
 
 
     static getTaskById = asyncHandler(async (req: Request, res: Response) => {
-            return sendSuccess(res, 'Task fetched successfully', req.task)
+            const task = await Task.findById(req.task._id).populate({ path: 'completedBy.user', select: '_id email name' }).lean()
+
+            return sendSuccess(res, 'Task fetched successfully', task)
     })
 
 
@@ -53,11 +55,12 @@ export class TaskController {
     static updateStatus = asyncHandler(async (req: Request, res: Response) => {
         const { status } = req.body;
         req.task.status = status;
-        if(status === 'pending'){
-            req.task.completedBy = null
-        }else{
-            req.task.completedBy = req.user._id as mongoose.Types.ObjectId;
+
+        const data = {
+            user: req.user._id,
+            status: status
         }
+        req.task.completedBy.push(data)
         await req.task.save();
 
         return sendSuccess(res, 'Task update successfully')

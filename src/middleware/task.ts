@@ -16,7 +16,7 @@ export async function validateTaskExists(req: Request, res: Response, next: Next
         const { taskId } = req.params;
         if(!taskId?.trim()) throw new ValidationError('Task ID is required')
 
-        const task = await Task.findById(taskId);
+        const task = await Task.findById(taskId);  
         if(!task) throw new NotFoundError('Task not found')
 
         req.task = task;
