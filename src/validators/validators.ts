@@ -19,3 +19,7 @@ export const validateTaskBody : ValidationChain[] = [
   validators.required('name'),
   validators.required('description'),
 ]
+
+export const validateNoteBody : ValidationChain[] = [
+  validators.required('content')
+]

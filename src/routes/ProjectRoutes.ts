@@ -5,10 +5,11 @@ import { handleInputErrors } from '../middleware/validation';
 import { TaskController } from '../controllers/TaskController';
 import { validateProjectExists } from '../middleware/project';
 import { hasAuthorization, taskBelongsProject, validateTaskExists } from '../middleware/task';
-import { validateMongoId, validateProjectBody, validateTaskBody } from '../validators/validators';
+import { validateMongoId, validateNoteBody, validateProjectBody, validateTaskBody } from '../validators/validators';
 import { authenticateToken } from '../middleware/auth';
 import { TeamMemberController } from '../controllers/TeamController';
 import { emailAccountValidators } from '../validators/authValidators';
+import { NoteController } from '../controllers/NoteController';
 
 const router = Router();
 
@@ -83,5 +84,24 @@ router.delete('/:projectId/team/:userId',
     handleInputErrors,
     TeamMemberController.removeMemberById
 )
+
+
+// -- Routes for notes --//
+router.post('/:projectId/tasks/:taskId/notes',
+    validateNoteBody,
+    handleInputErrors,
+    NoteController.createNote
+)
+
+router.get('/:projectId/tasks/:taskId/notes',
+    NoteController.getTaskNotes
+)
+
+router.delete('/:projectId/tasks/:taskId/notes/:noteId',
+    validateMongoId('noteId'),
+    handleInputErrors,
+    NoteController.deleteNote
+)
+
 
 export default router;

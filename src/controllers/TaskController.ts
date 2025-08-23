@@ -3,6 +3,7 @@ import Task from '../models/Task';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/responses';
 import mongoose from 'mongoose';
+import path from 'node:path';
 
 export class TaskController {
     static createTask = asyncHandler(async (req: Request, res: Response) => {
@@ -30,7 +31,9 @@ export class TaskController {
 
 
     static getTaskById = asyncHandler(async (req: Request, res: Response) => {
-            const task = await Task.findById(req.task._id).populate({ path: 'completedBy.user', select: '_id email name' }).lean()
+            const task = await Task.findById(req.task._id)
+                                        .populate({ path: 'completedBy.user', select: '_id email name' }).lean()
+                                        .populate({ path: 'notes', populate: { path: 'createdBy', select: '_id email name' }}).lean()
 
             return sendSuccess(res, 'Task fetched successfully', task)
     })
