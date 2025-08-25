@@ -369,5 +369,25 @@ export class AuthController {
             'RATE_LIMITED')
     }
 
+
+    static updateProfile = asyncHandler(async(req: Request, res: Response) => {
+        const { name, email } = req.body
+        // Normalize email
+            const normalizedEmail = email.toLowerCase().trim();
+
+        // Check who changed the email, whether it is the same user or another
+        const userExists = await User.findOne({ email: normalizedEmail });  
+        if(userExists && userExists._id.toString() !== req.user._id.toString()) throw new DuplicateError('This email is already in use.')
+
+        req.user.name = name
+        req.user.email = normalizedEmail
+        await req.user.save()
+
+        return sendSuccess(res, 'Profile updated successfully')
+    })
+
+    static updateCurrentUserPassword = asyncHandler(async(req: Request, res: Response) => {
+        
+    })
     
 }

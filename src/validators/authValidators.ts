@@ -3,15 +3,15 @@ import { body, ValidationChain  } from 'express-validator';
 
 const validators = {
   name: {
-    required: () => body('name').trim().notEmpty().withMessage('Name is required')
+    required: () => body('name').trim().notEmpty().withMessage('Name is required').isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters')
   },
   email: {
-    valid: () => body('email').isEmail().withMessage('Email is not valid')
+    valid: () => body('email').isEmail().withMessage('Email is not valid').normalizeEmail()
   },
   password: {
     required: () => body('password').notEmpty().withMessage('Password cannot be empty.'),
 
-    minLenght: (min: number = 8) => body('password').isLength({ min }).withMessage('Password must be at least 8 characters long'),
+    minLength: (min: number = 8) => body('password').isLength({ min }).withMessage('Password must be at least 8 characters long'),
 
     confirmation: () =>
       body('password_confirmation').custom((value, { req }) => {
@@ -32,7 +32,7 @@ export const createAccountValidators : ValidationChain[] = [
     validators.name.required(),
     validators.email.valid(),
     validators.password.required(),
-    validators.password.minLenght(8),
+    validators.password.minLength(8),
     validators.password.confirmation()
 ]
 
@@ -43,7 +43,7 @@ export const confirmAccountValidators : ValidationChain[] = [
 export const logginAccountValidators = [
     validators.email.valid(),
     validators.password.required(),
-    validators.password.minLenght(8)
+    validators.password.minLength(8)
 ]
 
 export const emailAccountValidators = [
@@ -52,6 +52,17 @@ export const emailAccountValidators = [
 
 export const passwordConfirmationValidators = [
   validators.password.required(),
-  validators.password.minLenght(8),
+  validators.password.minLength(8),
   validators.password.confirmation()
+]
+
+export const updateProfileValidators = [
+  validators.name.required(),
+  validators.email.valid()
+]
+
+export const updateCurrentUserPasswordValidators = [
+    validators.password.required(),
+    validators.password.minLength(8),
+    validators.password.confirmation()
 ]

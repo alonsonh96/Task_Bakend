@@ -35,7 +35,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         if(!decoded.id) throw new UnauthorizedError('Invalid token: missing user information')
         
         // Find user in the database
-        const user = await User.findById(decoded.id).select('_id name email').lean();
+        const user = await User.findById(decoded.id).select('_id name email');
         if(!user) throw new NotFoundError('User not found');
 
         req.user = user
