@@ -9,9 +9,17 @@ const validators = {
     valid: () => body('email').isEmail().withMessage('Email is not valid').normalizeEmail()
   },
   password: {
-    required: () => body('password').notEmpty().withMessage('Password cannot be empty.'),
 
-    minLength: (min: number = 8) => body('password').isLength({ min }).withMessage('Password must be at least 8 characters long'),
+    current: () => body('current_password')
+                      .trim()
+                      .notEmpty()
+                      .withMessage('Current password cannot be empty.')
+                      .isLength({min: 8}).withMessage(`Password must be at least ${8} characters long`),
+
+    required: () => body('password').notEmpty().withMessage('Password cannot be empty.')
+    ,
+
+    minLength: (min: number = 8) => body('password').isLength({ min }).withMessage(`Password must be at least ${min} characters long`),
 
     confirmation: () =>
       body('password_confirmation').custom((value, { req }) => {
@@ -62,6 +70,7 @@ export const updateProfileValidators = [
 ]
 
 export const updateCurrentUserPasswordValidators = [
+    validators.password.current(),
     validators.password.required(),
     validators.password.minLength(8),
     validators.password.confirmation()

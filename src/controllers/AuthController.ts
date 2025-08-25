@@ -8,7 +8,7 @@ import { AuthEmail } from '../emails/AuthEmail';
 import { clearAuthCookie, clearRefreshCookie, generateAccessToken, generateRefreshToken, setAuthCookie, setRefreshCookie } from '../utils/jwt';
 import jwt from "jsonwebtoken"
 import { asyncHandler } from '../utils/asyncHandler';
-import { AppError, DuplicateError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError } from '../utils/errors';
+import { AppError, DuplicateError, ForbiddenError, NotFoundError, UnauthorizedError, UnprocessableEntityError, ValidationError } from '../utils/errors';
 import { sendSuccess } from '../utils/responses';
 
 
@@ -387,7 +387,27 @@ export class AuthController {
     })
 
     static updateCurrentUserPassword = asyncHandler(async(req: Request, res: Response) => {
-        
+        const { current_password, password } = req.body
+
+        const user = await User.findById(req.user._id)
+        if (!user) throw new NotFoundError('User not found')
+
+        // Verify current password
+        const isPasswordCorrect = await checkPassword(current_password, user.password)
+        if(!isPasswordCorrect) throw new UnauthorizedError('The current password is incorrect')
+
+        // Verify that the new password is different
+        const isSamePassword = await checkPassword(password, user.password)
+        if (isSamePassword) throw new UnprocessableEntityError('New password must be different from current password');
+
+        // Update password
+        user.password = await hashPassword(password)
+        await user.save()
+
+        clearAuthCookie(res);
+        clearRefreshCookie(res);
+
+        sendSuccess(res, 'The password was changed successfully')
     })
     
 }
