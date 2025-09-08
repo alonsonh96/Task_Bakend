@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 
 
 const RATE_LIMIT_CONFIG = {
@@ -25,14 +25,7 @@ function createRateLimiter(name: string, options: any){
     return rateLimit({
         windowMs: options.windowMs,
         max: options.max,
-        keyGenerator: (req) => {
-            const userId = req.user?._id?.toString();
-            const ip = req.ip || req.socket.remoteAddress;
-            const userAgent = req.get('User-Agent') || 'unknown';
-            
-            // Use userId if it exists, otherwise IP + User-Agent hash
-            return userId || `${ip}:${Buffer.from(userAgent).toString('base64').slice(0, 8)}`;
-        },
+        keyGenerator: (req, res) => ipKeyGenerator(req.ip),
         message: options.message,
         standardHeaders: true,
         legacyHeaders: false,

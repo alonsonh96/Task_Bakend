@@ -55,6 +55,10 @@ export const TaskSchema = new Schema<ITask>({
                 type: String,
                 enum: Object.values(taskStatus),
                 default: taskStatus.PENDING
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now()
             }
         }
     ],
