@@ -1,5 +1,6 @@
 import mongoose, { Types } from 'mongoose';
 import { Document } from 'mongoose';
+import Note from './Note';
 const { Schema } = mongoose;
 
 const taskStatus = {
@@ -58,7 +59,7 @@ export const TaskSchema = new Schema<ITask>({
             },
             createdAt: {
                 type: Date,
-                default: Date.now()
+                default: Date.now
             }
         }
     ],
@@ -71,6 +72,16 @@ export const TaskSchema = new Schema<ITask>({
 }, {
     timestamps: true // Automatically manage createdAt and updatedAt fields
 })
+
+
+// Middleware
+TaskSchema.pre('deleteOne', { document: false, query: true }, async function () {
+    const query = this as mongoose.Query<any, any>;
+    const taskId = query.getFilter()
+    if (taskId._id) {
+        await Note.deleteMany({ task: taskId._id });
+    }
+}) 
 
 const Task = mongoose.model<ITask>('Task', TaskSchema);
 export default Task;
