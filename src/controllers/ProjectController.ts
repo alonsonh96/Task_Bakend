@@ -91,7 +91,7 @@ export class ProjectController {
         const session = await mongoose.startSession()
         try {
             await session.withTransaction(async () => {
-                // Delete associated tasks
+                // The Task middleware will take care of deleting the notes
                 await Task.deleteMany({ project: projectId }, { session });
 
                 // Delete the project

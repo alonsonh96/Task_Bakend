@@ -1,6 +1,5 @@
 import mongoose, { Types } from 'mongoose';
 import { Document } from 'mongoose';
-import Note from './Note';
 const { Schema } = mongoose;
 
 const taskStatus = {
@@ -74,14 +73,42 @@ export const TaskSchema = new Schema<ITask>({
 })
 
 
-// Middleware
+// Middleware to deleteOne
 TaskSchema.pre('deleteOne', { document: false, query: true }, async function () {
-    const query = this as mongoose.Query<any, any>;
-    const taskId = query.getFilter()
-    if (taskId._id) {
-        await Note.deleteMany({ task: taskId._id });
+    try {
+        const query = this as mongoose.Query<any, any>;
+        const { _id: taskId } = query.getFilter();
+
+        if (!taskId) return;
+
+        await mongoose.model("Note").deleteMany({ task: taskId });
+    } catch (error) {
+        console.error("Error en Task.deleteOne middleware:", error);
+        throw error;
     }
-}) 
+});
+
+
+// Middleware to deleteMany
+TaskSchema.pre('deleteMany', { document: false, query: true }, async function () {
+    try {
+        const query = this as mongoose.Query<any, any>;
+        const filter = query.getFilter();
+
+        // We get all the tasks that meet the condition
+        const tasks = await mongoose.model("Task").find(filter).distinct("_id");;
+
+        const taskIds = tasks.map(task => task._id);
+
+        if (taskIds.length > 0) {
+            await mongoose.model("Note").deleteMany({ task: { $in: taskIds } });
+        }
+    } catch (error) {
+        console.error("Error en middleware Task.deleteMany:", error);
+        throw error; 
+    }
+
+});
 
 const Task = mongoose.model<ITask>('Task', TaskSchema);
 export default Task;
