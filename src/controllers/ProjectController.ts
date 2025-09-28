@@ -31,8 +31,8 @@ export class ProjectController {
 
         return sendSuccess(res, 
             projectDTOs.length > 0 
-            ? 'Projects fetched successfully' 
-            : 'No projects found for this user', 
+            ? 'PROJECTS_FETCHED' 
+            : 'NO_PROJECTS_FOUND', 
             projectDTOs)
     })
 
@@ -40,34 +40,35 @@ export class ProjectController {
     static getProjectById = asyncHandler(async (req: Request, res: Response) => {
         const isManager = req.project.manager.toString() === req.user._id.toString()
         const isTeamMember = req.project.team.map(memberId => memberId.toString()).includes(req.user._id.toString());
+        
         if (!isManager && !isTeamMember) {
-            throw new UnauthorizedError('Action not valid')
+            throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         }
-        return sendSuccess(res, 'Projects fetched successfully', req.project)
+        return sendSuccess(res, 'PROJECTS_FETCHED', req.project)
     })
 
 
     static createProject = asyncHandler(async(req: Request, res: Response) => {
         // Validate user authentication
-        if (!req.user || !req.user._id) throw new UnauthorizedError('User not authenticated')
+        if (!req.user || !req.user._id) throw new UnauthorizedError('UNAUTHORIZED_USER')
  
         const { projectName, clientName, description } = req.body
         const { _id } = req.user;
 
         if(!projectName?.trim() || !clientName?.trim() || !description?.trim()) {
-            throw new ValidationError('Project name, client name, and description are required and cannot be empty')
+            throw new ValidationError('VALIDATION_REQUIRED_PROJECT_FIELDS')
         }
         
         const project = new Project({ projectName, clientName, description, manager: _id });
         const saveProject = await project.save();
 
-        return sendSuccess(res, 'Project created successfully', saveProject, 201 )
+        return sendSuccess(res, 'PROJECT_CREATION_SUCCESS', saveProject, 201)
     })
 
     
     static updateProjectById = asyncHandler(async (req: Request, res: Response) => {
         if (req.project.manager.toString() !== req.user._id.toString()) {
-            throw new UnauthorizedError('Action not valid')
+            throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         }
 
         const { projectId } = req.params;
@@ -76,13 +77,13 @@ export class ProjectController {
             runValidators: true,
         });
 
-        return sendSuccess(res, 'Project updated successfully', updatedProject)
+        return sendSuccess(res, 'PROJECT_UPDATE_SUCCESS', updatedProject)
     })
 
 
     static deleteProjectById = asyncHandler(async (req: Request, res: Response) => {
         if (req.project.manager.toString() !== req.user._id.toString()) {
-            throw new UnauthorizedError('Action not valid')
+            throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         }
 
         const { projectId } = req.params
@@ -99,12 +100,12 @@ export class ProjectController {
             })
         } catch (error) {
             console.error('Error deleted project:', error);
-            throw new AppError('Failed to delete project', 500, 'PROJECT_DELETE_FAILED');
+            throw new AppError(500, 'PROJECT_DELETE_FAILED');
         } finally {
             await session.endSession()
         }
         
-        return sendSuccess(res, 'Project deleted successfully')
+        return sendSuccess(res, 'PROJECT_DELETE_SUCCESS')
     })
 
 }
