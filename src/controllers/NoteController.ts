@@ -27,18 +27,22 @@ export class NoteController {
                 await req.task.save({ session })
             })
         } catch (error) {
-            throw new AppError('Failed to create note', 500, 'NOTE_CREATE_FAILED');
+            throw new AppError(500, 'NOTE_CREATE_FAILED');
         } finally {
             await session.endSession()
         }
 
-        return sendSuccess(res, 'Note created successfully', note.toObject());
+        return sendSuccess(res, 'NOTE_CREATED', note.toObject());
     })
 
 
     static getTaskNotes = asyncHandler(async(req: Request, res: Response) => {
-        const notes = await Note.find({task: req.task._id})
-        return res.json(notes)
+        try {
+            const notes = await Note.find({ task: req.task._id });
+            return sendSuccess(res, 'NOTES_FETCHED', notes);
+        } catch (error) {
+            throw new AppError(500, 'NOTE_FETCH_FAILED');
+        }
     })
 
     
@@ -46,9 +50,9 @@ export class NoteController {
         const { noteId } = req.params
 
         const note = await Note.findById(noteId)
-        if(!note) throw new NotFoundError('Note not found')
+        if(!note) throw new NotFoundError('NOTE_NOT_FOUND')
 
-        if(!note.createdBy.equals(req.user._id)) throw new UnauthorizedError('Action not valid')
+        if(!note.createdBy.equals(req.user._id)) throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         
         const session = await mongoose.startSession();
         try {
@@ -58,11 +62,11 @@ export class NoteController {
                 await Note.deleteOne({ _id: noteId }, { session });
             })
         } catch (error) {
-             throw new AppError('Failed to delete note', 500, 'NOTE_DELETE_FAILED');
+             throw new AppError(500, 'NOTE_DELETE_FAILED');
         } finally {
             await session.endSession();
         }
 
-        sendSuccess(res, 'Note deleted successfully')
+        sendSuccess(res, 'NOTE_DELETED')
     })
 }
