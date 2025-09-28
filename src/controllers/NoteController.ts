@@ -32,7 +32,7 @@ export class NoteController {
             await session.endSession()
         }
 
-        return sendSuccess(res, 'NOTE_CREATED', note.toObject());
+        return sendSuccess(res, 'NOTE_CREATE_SUCCESS', note.toObject());
     })
 
 
@@ -67,6 +67,6 @@ export class NoteController {
             await session.endSession();
         }
 
-        sendSuccess(res, 'NOTE_DELETED')
+        sendSuccess(res, 'NOTE_DELETE_SUCCES')
     })
 }

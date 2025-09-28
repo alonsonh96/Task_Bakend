@@ -44,25 +44,25 @@ export class ProjectController {
         if (!isManager && !isTeamMember) {
             throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         }
-        return sendSuccess(res, 'PROJECTS_FETCHED', req.project)
+        return sendSuccess(res, 'PROJECTS_FETCH_SUCCESS', req.project)
     })
 
 
     static createProject = asyncHandler(async(req: Request, res: Response) => {
         // Validate user authentication
-        if (!req.user || !req.user._id) throw new UnauthorizedError('UNAUTHORIZED_USER')
+        if (!req.user || !req.user._id) throw new UnauthorizedError('PROJECT_UNAUTHORIZED')
  
         const { projectName, clientName, description } = req.body
         const { _id } = req.user;
 
         if(!projectName?.trim() || !clientName?.trim() || !description?.trim()) {
-            throw new ValidationError('VALIDATION_REQUIRED_PROJECT_FIELDS')
+            throw new ValidationError('PROJECT_VALIDATION_REQUIRED_FIELDS')
         }
         
         const project = new Project({ projectName, clientName, description, manager: _id });
         const saveProject = await project.save();
 
-        return sendSuccess(res, 'PROJECT_CREATION_SUCCESS', saveProject, 201)
+        return sendSuccess(res, 'PROJECT_CREATE_SUCCESS', saveProject, 201)
     })
 
     

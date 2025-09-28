@@ -2,12 +2,15 @@ import type { Request, Response } from 'express';
 import Task from '../models/Task';
 import { asyncHandler } from '../utils/asyncHandler';
 import { sendSuccess } from '../utils/responses';
-import mongoose from 'mongoose';
-import path from 'node:path';
+import { ValidationError } from '../utils/errors';
 
 export class TaskController {
     static createTask = asyncHandler(async (req: Request, res: Response) => {
         const { name, description } = req.body
+
+        if(!name?.trim() || !description?.trim()) {
+            throw new ValidationError('TASK_VALIDATION_REQUIRED_FIELDS')
+        }
 
         // Create the task (validation already done by middleware)
         const task = new Task({
@@ -18,7 +21,7 @@ export class TaskController {
 
         const savedTask = await task.save();
 
-        return sendSuccess(res, 'Task created successfully', savedTask, 201)
+        return sendSuccess(res, 'TASK_CREATE_SUCCESS', savedTask, 201)
     })
 
 
@@ -26,7 +29,7 @@ export class TaskController {
         const { projectId } = req.params;
         const tasks = await Task.find({ project: projectId })
 
-        return sendSuccess(res, 'Tasks fetched successfully', tasks)
+        return sendSuccess(res, 'TASK_FETCH_SUCCESS', tasks)
     })
 
 
@@ -35,7 +38,7 @@ export class TaskController {
                                         .populate({ path: 'completedBy.user', select: '_id email name' }).lean()
                                         .populate({ path: 'notes', populate: { path: 'createdBy', select: '_id email name' }}).lean()
 
-            return sendSuccess(res, 'Task fetched successfully', task)
+            return sendSuccess(res, 'TASK_FETCH_SUCCESS', task)
     })
 
 
@@ -45,13 +48,13 @@ export class TaskController {
             runValidators: true// Apply schema validations
         });
 
-        return sendSuccess(res, 'Task updated successfully', updatedTask )
+        return sendSuccess(res, 'TASK_UPDATE_SUCCESS', updatedTask )
     })
 
 
     static deleteTask = asyncHandler(async (req: Request, res: Response) => {
         await Task.deleteOne({ _id: req.task._id });
-        return sendSuccess(res, 'Task deleted successfully')
+        return sendSuccess(res, 'TASK_DELETE_SUCCESS')
     })
 
 
@@ -66,7 +69,7 @@ export class TaskController {
         req.task.completedBy.push(data)
         await req.task.save();
 
-        return sendSuccess(res, 'Task update successfully')
+        return sendSuccess(res, 'TASK_STATUS_UPDATE_SUCCESS')
     })
 
 }
