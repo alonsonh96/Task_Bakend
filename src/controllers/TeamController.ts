@@ -12,9 +12,9 @@ export class TeamMemberController {
         const normalizedEmail = email.toLowerCase().trim();
 
         const user = await User.findOne({ email: normalizedEmail }).select('_id email name').lean()
-        if(!user) throw new NotFoundError('User not found')
+        if(!user) throw new NotFoundError('TEAM_MEMBER_NOT_FOUND')
        
-        return sendSuccess(res, 'User found successfully', user)
+        return sendSuccess(res, 'TEAM_MEMBER_FETCH_SUCCESS', user)
     })
 
 
@@ -22,14 +22,14 @@ export class TeamMemberController {
         const { id } = req.body
         
         // Check if the user is already on the team
-        if(req.project.team.includes(id)) throw new DuplicateError('User is already a member of this project')
+        if(req.project.team.includes(id)) throw new DuplicateError('TEAM_MEMBER_ALREADY_EXISTS')
 
         const user = await User.findById(id).select('id').lean()
-        if(!user) throw new NotFoundError('User not found')
+        if(!user) throw new NotFoundError('TEAM_MEMBER_NOT_FOUND')
 
         await Project.findByIdAndUpdate(req.project.id, {$addToSet: { team: user._id }}, { new: true, runValidators: true })
 
-        sendSuccess(res, 'User added successfully')
+        sendSuccess(res, 'TEAM_MEMBER_ADD_SUCCESS')
     })
 
 
@@ -38,15 +38,15 @@ export class TeamMemberController {
 
         // Verify user exists
         const user = await User.findById(userId).select('_id name email').lean();
-        if (!user) throw new NotFoundError('User not found')
+        if (!user) throw new NotFoundError('TEAM_MEMBER_NOT_FOUND')
 
         // Check if the user is already on the team
         const isMember = req.project.team.some(memberId => memberId.toString() === userId);
-        if(!isMember) throw new NotFoundError('User is not a member of this project');
+        if(!isMember) throw new NotFoundError('TEAM_MEMBER_NOT_IN_PROJECT');
         
         await Project.findByIdAndUpdate(req.project._id, {$pull: {team: userId}}, {new:true, runValidators: true})
 
-        sendSuccess(res, 'User remove successfully')
+        sendSuccess(res, 'TEAM_MEMBER_REMOVE_SUCCESS')
     })
 
 
@@ -54,7 +54,7 @@ export class TeamMemberController {
         const projectId = req.project._id
         const project = await Project.findById(projectId).populate({path: 'team', select: '_id email name'})
 
-        sendSuccess(res, 'List of members', project.team)
+        sendSuccess(res, 'TEAM_MEMBERS_FETCH_SUCCESS', project.team)
     })
 
 }
