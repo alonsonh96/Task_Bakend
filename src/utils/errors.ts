@@ -1,12 +1,12 @@
 export class AppError extends Error {
     public readonly statusCode: number;
-    public readonly errorCode: string;
+    public readonly messageCode: string;
     public readonly isOperational: boolean;
 
-    constructor(message: string, statusCode: number, errorCode: string){
-        super(message);
+    constructor(statusCode: number, messageCode: string, message?: string){
+        super(message || messageCode);
         this.statusCode = statusCode;
-        this.errorCode = errorCode;
+        this.messageCode = messageCode;
         this.isOperational = true;
 
         Error.captureStackTrace(this, this.constructor);
@@ -15,38 +15,38 @@ export class AppError extends Error {
 
 
 export class ValidationError extends AppError {
-    constructor(message: string = 'Invalid data provided'){
-        super(message, 400, 'VALIDATION_ERROR')
+    constructor(messageCode: string = 'VALIDATION_ERROR'){
+        super(400, messageCode)
     } 
 }
 
 export class UnauthorizedError extends AppError {
-    constructor(message: string = 'Unauthorized access') {
-        super(message, 401, 'UNAUTHORIZED');
+    constructor(messageCode: string = 'UNAUTHORIZED') {
+        super(401, messageCode);
     }
 }
 
 export class ForbiddenError extends AppError {
-    constructor(message: string = 'Forbidden') {
-        super(message, 403, 'FORBIDDEN');
+    constructor(messageCode: string = 'FORBIDDEN') {
+        super(403, messageCode);
     }
 }
 
 export class NotFoundError extends AppError {
-    constructor(message: string = 'Resource not found') {
-        super(message, 404, 'NOT_FOUND');
+    constructor(messageCode: string = 'NOT_FOUND') {
+        super(404, messageCode);
     }
 }
 
 export class DuplicateError extends AppError {
-    constructor(message: string = 'Resource already exists') {
-        super(message, 409, 'DUPLICATE_RESOURCE');
+    constructor(messageCode: string = 'DUPLICATE_RESOURCE') {
+        super(409, messageCode);
     }
 }
 
 export class UnprocessableEntityError extends AppError {
-    constructor(message: string = 'Unprocessable entity') {
-        super(message, 422, 'UNPROCESSABLE_ENTITY');
+    constructor(messageCode: string = 'UNPROCESSABLE_ENTITY') {
+        super(422, messageCode);
     }
 }
 

@@ -16,7 +16,7 @@ export class AuthController {
 
     static createAccount = asyncHandler(async(req : Request, res: Response) => {
             const { name, email, password } : CreateAccountDTO = req.body;
-            if(!name.trim() || !email.trim() || !password.trim()) throw new ValidationError('Name, email, and password are required')
+            if(!name.trim() || !email.trim() || !password.trim()) throw new ValidationError('VALIDATION_REQUIRED_FIELDS')
 
             // Normalize email
             const normalizedEmail = email.toLowerCase().trim();
@@ -24,7 +24,7 @@ export class AuthController {
             // Check for existing user
             const userExists = await User.findOne({ email: normalizedEmail });
             if (userExists) {
-                throw new DuplicateError('User already registered with this email')
+                throw new DuplicateError('EMAIL_ALREADY_REGISTERED')
             }
 
             // Hash password
@@ -62,11 +62,11 @@ export class AuthController {
                     console.error('Failed to send confirmation email:', error);
                 });
 
-                return sendSuccess(res, 'Account created successfully. Please check your email to confirm your account', 
+                return sendSuccess(res, 'USER_CREATED', 
                     { user: user._id, name: user.name, email: user.email }, 201) 
 
             } catch (error) {
-                throw new AppError('Failed to create account', 500, 'ACCOUNT_CREATION_FAILED')
+                throw new AppError(500, 'ACCOUNT_CREATION_FAILED')
             } finally {
                 await session.endSession();
             }
@@ -78,26 +78,26 @@ export class AuthController {
 
             // Validation: token is required
             if (!token?.trim()) {
-                throw new ValidationError('Token is required')
+                throw new ValidationError('VALIDATION_REQUIRED_TOKEN')
             }
             
             // Find token in database
             const tokenExists = await Token.findOne({token : token.trim()})
             if(!tokenExists) {
-                throw new UnauthorizedError('Invalid or expired token')
+                throw new UnauthorizedError('INVALID_OR_EXPIRED_TOKEN')
             }
 
             // Find user by token
             const user = await User.findById(tokenExists.user)
             if(!user){
-                throw new NotFoundError('User not found')
+                throw new NotFoundError('CONFIRMATION_USER_NOT_FOUND')
             }
 
             // Check if user is already confirmed
             if (user.confirmed) {
                 // Clean up the token anyway
                 await Token.deleteOne({ _id: tokenExists._id });
-                return sendSuccess(res, 'Account is already confirmed');
+                return sendSuccess(res, 'ACCOUNT_ALREADY_CONFIRMED');
             }
 
             // Confirm user account using transaction
@@ -113,7 +113,7 @@ export class AuthController {
                     await Token.deleteOne({ _id: tokenExists._id }, { session });
                 })
 
-                return sendSuccess(res, 'Account confirmed successfully', {
+                return sendSuccess(res, 'ACCOUNT_CONFIRMED', {
                     user: {
                         id: user._id,
                         name: user.name,
@@ -122,7 +122,7 @@ export class AuthController {
                     }
                 });
             } catch (error) {
-                throw new AppError('Failed to confirm account', 500, 'CONFIRMATION_FAILED');
+                throw new AppError(500, 'CONFIRMATION_FAILED');
             } finally {
                 await session.endSession();
             }
@@ -132,25 +132,22 @@ export class AuthController {
     static loginAccount = asyncHandler(async(req: Request, res: Response) => {
             const { email, password } = req.body
             
-            if(!email.trim() || !password) throw new ValidationError('Email and password are required')
+            if(!email.trim() || !password) throw new ValidationError('LOGIN_REQUIRED_FIELDS')
 
             // Normalize email and find user (include password field)
             const user = await User.findOne({email: email.toLowerCase().trim()})
-            if(!user) throw new NotFoundError('User not found')
+            if(!user) throw new NotFoundError('USER_NOT_FOUND')
 
             // Validate password first
             const isPasswordCorrect = await checkPassword(password, user.password)
-            if(!isPasswordCorrect) throw new UnauthorizedError('Invalid credentials')
+            if(!isPasswordCorrect) throw new UnauthorizedError('INVALID_CREDENTIALS')
 
             // Check if account is confirmed
             if (!user.confirmed) {
                 await this.checkConfirmationRateLimit(user.id)
                 await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
-                throw new AppError(
-                    'Account not confirmed. We have sent a confirmation email',
-                    403,
-                    'ACCOUNT_NOT_CONFIRMED'
-                );
+                
+                throw new AppError(403,'ACCOUNT_NOT_CONFIRMED');
             }
 
             const accessToken = generateAccessToken({ id: user.id.toString() })
@@ -158,7 +155,7 @@ export class AuthController {
             setAuthCookie(res, accessToken)
             setRefreshCookie(res, refreshToken)
 
-            return sendSuccess(res, 'User authenticated successfully',
+            return sendSuccess(res, 'LOGIN_SUCCESS',
                 {user: {
                         id: user._id,
                         name: user.name,
@@ -173,15 +170,15 @@ export class AuthController {
             const { email } = req.body
 
             // Validate email is provided
-            if(!email?.trim()) throw new ValidationError('Email is required')
+            if(!email?.trim()) throw new ValidationError('VALIDATION_REQUIRED_EMAIL')
 
             // Normalize email and find user
             const normalizedEmail = email.toLowerCase().trim();
             const user = await User.findOne({email : normalizedEmail});
-            if(!user) throw new NotFoundError('User is not registered')
+            if(!user) throw new NotFoundError('USER_NOT_REGISTERED')
             
             // Check if user is already confirmed
-            if(user.confirmed) throw new AppError('The user is already confirmed', 409, 'ALREADY_CONFIRMED')
+            if(user.confirmed) throw new AppError(409, 'ALREADY_CONFIRMED')
 
             // Check for existing recent token to prevent spam
             await this.checkConfirmationRateLimit(user.id)
@@ -189,39 +186,38 @@ export class AuthController {
             // Clean up old tokens for this user
             await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
 
-            return sendSuccess(res, 'A new confirmation code has been sent to your email')
+            return sendSuccess(res, 'CONFIRMATION_CODE_SENT')
     })
 
 
     static forgotPassword = asyncHandler(async (req: Request, res: Response) => {
             const { email } = req.body
 
-            if(!email?.trim()) throw new ValidationError('Email is required')
+            if(!email?.trim()) throw new ValidationError('FORGOT_REQUIRED_EMAIL')
 
             // Normalize email and find user
             const normalizedEmail = email.toLowerCase().trim();
             const user = await User.findOne({ email: normalizedEmail });
-            if (!user) return sendSuccess(res, 'If your email is registered, you will receive password reset instructions');
+            if (!user) return sendSuccess(res, 'PASSWORD_RESET_GENERIC');
 
             // Check for existing recent token to prevent spam
             await this.checkConfirmationRateLimit(user.id)
             await this.generateAndSendConfirmationToken(user, AuthEmail.sendPasswordResetToken)
  
-            return sendSuccess(res, 'Password reset instructions have been sent to your email');
+            return sendSuccess(res, 'PASSWORD_RESET_GENERIC');
     })
 
 
     static validateToken = asyncHandler(async (req: Request, res: Response) => {
         const { token } = req.body
         // Validation: token is required
-        if(!token.trim()) throw new ValidationError('Password reset token is required')
+        if(!token.trim()) throw new ValidationError('VALIDATION_REQUIRED_FIELDS')
 
         // Find token in BD
         const tokenExists = await Token.findOne({ token })
-        if (!tokenExists) throw new AppError('Invalid or expired password reset token', 401, 'INVALID_OR_EXPIRED_TOKEN');
+        if (!tokenExists) throw new AppError(401, 'INVALID_OR_EXPIRED_TOKEN');
 
-        // return res.status(200).json({ message: 'Valid token, set your new password' });
-        return sendSuccess(res, 'Valid password reset token. You can now set your new password.', {
+        return sendSuccess(res, 'VALID_TOKEN', {
             tokenValid: true,
             user: tokenExists.user
         })
@@ -232,16 +228,16 @@ export class AuthController {
             const { token } = req.params
             const { password } = req.body
 
-            if(!token.trim()) throw new ValidationError('Password reset token is required')
-            if(!password.trim()) throw new ValidationError('New password is required')
+            if(!token.trim()) throw new ValidationError('RESET_REQUIRED_TOKEN')
+            if(!password.trim()) throw new ValidationError('VALIDATION_REQUIRED_FIELDS')
 
             // Find token in BD
             const tokenExists = await Token.findOne({token})
-            if(!tokenExists) throw new AppError('Invalid or expired password reset token', 401, 'INVALID_OR_EXPIRED_TOKEN')
+            if(!tokenExists) throw new AppError(401, 'INVALID_OR_EXPIRED_TOKEN')
 
             // Find user associated with the token
             const user = await User.findById({ _id: tokenExists.user })
-            if(!user) throw new NotFoundError('User associated with this token no longer exists')
+            if(!user) throw new NotFoundError('RESET_USER_NOT_FOUND')
             // Hash the new password
             const hashedPassword = await hashPassword(password)
 
@@ -255,7 +251,7 @@ export class AuthController {
                 })
 
                 return sendSuccess(res, 
-                    'Password has been updated successfully. You can now login with your new password', {
+                    'PASSWORD_UPDATED', {
                         user: {
                             id: user._id,
                             email: user.email,
@@ -264,7 +260,7 @@ export class AuthController {
                     })
             } catch (error) {
                 console.error('Error updating password:', error);
-                throw new AppError('Failed to update password', 500, 'PASSWORD_UPDATE_FAILED');
+                throw new AppError(500, 'PASSWORD_UPDATE_FAILED');
             } finally {
                 await session.endSession()
             }
@@ -274,15 +270,15 @@ export class AuthController {
     static refreshToken = asyncHandler(async(req: Request, res: Response) => {
         try {
             const refreshToken = req.cookies.refreshToken
-            if(!refreshToken) throw new UnauthorizedError('Refresh token required')
+            if(!refreshToken) throw new UnauthorizedError('REFRESH_TOKEN_REQUIRED')
             
             // Verify refresh token
             const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET!) as { id: string }
-            if (!decoded.id) throw new ForbiddenError('Invalid token: missing user information')
+            if (!decoded.id) throw new ForbiddenError('INVALID_REFRESH_TOKEN')
 
             // Verify that the user still exists
             const user = await User.findById(decoded.id).select('_id name email').lean();
-            if (!user) throw new NotFoundError('User not found');
+            if (!user) throw new NotFoundError('USER_NOT_FOUND');
 
             // Generate BOTH new tokens (token rotation)
             const newAccessToken = generateAccessToken({ id: decoded.id });
@@ -292,7 +288,7 @@ export class AuthController {
             setAuthCookie(res, newAccessToken);
             setRefreshCookie(res, newRefreshToken);
 
-            return sendSuccess(res, 'Access token refreshed', {
+            return sendSuccess(res, 'TOKEN_REFRESH_SUCCESS', {
                 user: {
                     id: user._id,
                     name: user.name,
@@ -309,7 +305,7 @@ export class AuthController {
 
 
     static getUser = asyncHandler(async(req: Request, res: Response) => {
-        return sendSuccess(res, 'Get user data', req.user)
+        return sendSuccess(res, 'USER_FETCH_SUCCESS', req.user)
     })
 
 
@@ -317,7 +313,7 @@ export class AuthController {
         clearAuthCookie(res)
         clearRefreshCookie(res)
 
-        return sendSuccess(res, 'User logged out successfully')
+        return sendSuccess(res, 'LOGOUT_SUCCESS')
     })
 
 
@@ -348,7 +344,6 @@ export class AuthController {
             console.error(`Failed to send confirmation email to ${user.email}:`, emailError);
             // Don't fail the request, but maybe add to a retry queue
             throw new AppError(
-                'Token generated but failed to send email. Please try again.',
                 500,
                 'EMAIL_SEND_FAILED'
             );
@@ -364,7 +359,6 @@ export class AuthController {
         });
 
         if (recentToken ) throw new AppError(
-            'A confirmation code was already sent recently. Please check your email or try again later',
             429,
             'RATE_LIMITED')
     }
@@ -377,28 +371,28 @@ export class AuthController {
 
         // Check who changed the email, whether it is the same user or another
         const userExists = await User.findOne({ email: normalizedEmail });  
-        if(userExists && userExists._id.toString() !== req.user._id.toString()) throw new DuplicateError('This email is already in use.')
+        if(userExists && userExists._id.toString() !== req.user._id.toString()) throw new DuplicateError('EMAIL_ALREADY_IN_USE')
 
         req.user.name = name
         req.user.email = normalizedEmail
         await req.user.save()
 
-        return sendSuccess(res, 'Profile updated successfully')
+        return sendSuccess(res, 'PROFILE_UPDATED')
     })
 
     static updateCurrentUserPassword = asyncHandler(async(req: Request, res: Response) => {
         const { current_password, password } = req.body
 
         const user = await User.findById(req.user._id)
-        if (!user) throw new NotFoundError('User not found')
+        if (!user) throw new NotFoundError('USER_NOT_FOUND')
 
         // Verify current password
         const isPasswordCorrect = await checkPassword(current_password, user.password)
-        if(!isPasswordCorrect) throw new UnauthorizedError('The current password is incorrect')
+        if(!isPasswordCorrect) throw new UnauthorizedError('INCORRECT_CURRENT_PASSWORD')
 
         // Verify that the new password is different
         const isSamePassword = await checkPassword(password, user.password)
-        if (isSamePassword) throw new UnprocessableEntityError('New password must be different from current password');
+        if (isSamePassword) throw new UnprocessableEntityError('PASSWORD_MUST_BE_DIFFERENT');
 
         // Update password
         user.password = await hashPassword(password)
@@ -407,7 +401,7 @@ export class AuthController {
         clearAuthCookie(res);
         clearRefreshCookie(res);
 
-        sendSuccess(res, 'The password was changed successfully')
+        sendSuccess(res, 'PASSWORD_CHANGED')
     })
     
 }

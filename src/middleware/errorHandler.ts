@@ -19,8 +19,8 @@ export const errorHandler = (
     if (error instanceof AppError) {
         return res.status(error.statusCode).json({
             success: false,
-            message: error.message,
-            error: error.errorCode
+            statusCode: error.statusCode,
+            messageCode: error.messageCode,   
         });
     }
 
@@ -28,16 +28,16 @@ export const errorHandler = (
     if (error.name === 'ValidationError') {
         return res.status(400).json({
             success: false,
-            message: 'Invalid data provided',
-            error: 'VALIDATION_ERROR'
+            statusCode: error.statusCode,
+            messageCode: 'VALIDATION_ERROR'
         });
     }
 
     if (error.code === 11000) {
         return res.status(409).json({
             success: false,
-            message: 'User already registered with this email',
-            error: 'DUPLICATE_EMAIL'
+            statusCode: error.statusCode,
+            messageCode: 'DUPLICATE_EMAIL'
         });
     }
 
@@ -45,16 +45,16 @@ export const errorHandler = (
     if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({
             success: false,
-            message: 'Invalid token',
-            error: 'INVALID_TOKEN'
+            statusCode: error.statusCode,
+            messageCode: 'INVALID_TOKEN'
         });
     }
 
     if (error.name === 'TokenExpiredError') {
         return res.status(401).json({
             success: false,
-            message: 'Token expired',
-            error: 'TOKEN_EXPIRED'
+            statusCode: error.statusCode,
+            messageCode: 'TOKEN_EXPIRED'
         });
     }
 
@@ -62,15 +62,15 @@ export const errorHandler = (
     if (error.message?.includes('bcrypt')) {
         return res.status(500).json({
             success: false,
-            message: 'Error processing account data',
-            error: 'PASSWORD_HASH_ERROR'
+            statusCode: error.statusCode,
+            messageCode: 'Error processing account data',
         });
     }
 
     // Default server error
     return res.status(500).json({
         success: false,
-        message: 'Internal server error',
-        error: 'INTERNAL_ERROR'
+        statusCode: error.statusCode,
+        messageCode: 'INTERNAL_ERROR',
     });
 }
