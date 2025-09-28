@@ -21,22 +21,22 @@ interface JwtPayload {
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction) : Promise <void> => {
     try {
         const token = req.cookies?.accessToken
-        if (!token) throw new UnauthorizedError('Access token required')
+        if (!token) throw new UnauthorizedError('ACCESS_TOKEN_REQUIRED')
 
         // Verify that JWT_SECRET exists
         const jwtSecret = process.env.JWT_SECRET;
         if (!jwtSecret) {
             console.error('JWT_SECRET is not set in environment variables');
-            throw new AppError('Server configuration error', 500, 'MISSING_JWT_SECRET');
+            throw new AppError(500, 'MISSING_JWT_SECRET');
         }
 
         // Verify and decode token
         const decoded = jwt.verify(token, jwtSecret) as JwtPayload;
-        if(!decoded.id) throw new UnauthorizedError('Invalid token: missing user information')
+        if(!decoded.id) throw new UnauthorizedError('INVALID_TOKEN_PAYLOAD')
         
         // Find user in the database
         const user = await User.findById(decoded.id).select('_id name email');
-        if(!user) throw new NotFoundError('User not found');
+        if(!user) throw new NotFoundError('USER_NOT_FOUND');
 
         req.user = user
         next()
