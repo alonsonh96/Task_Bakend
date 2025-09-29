@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../utils/errors';
+import { AppError, ValidationError } from '../utils/errors';
 
 export const errorHandler = (
     error: any,
@@ -15,6 +15,15 @@ export const errorHandler = (
         timestamp: new Date().toISOString()
     });
 
+    if (error instanceof ValidationError && error.details) {
+        return res.status(error.statusCode).json({
+            success: false,
+            statusCode: error.statusCode,
+            messageCode: error.messageCode,
+            errors: error.details
+        });
+    }
+
     // Handle custom application errors
     if (error instanceof AppError) {
         return res.status(error.statusCode).json({
@@ -24,12 +33,14 @@ export const errorHandler = (
         });
     }
 
+     
+
     // Handle MongoDB specific errors
     if (error.name === 'ValidationError') {
         return res.status(400).json({
             success: false,
-            statusCode: error.statusCode,
-            messageCode: 'VALIDATION_ERROR'
+            statusCode: 400,
+            messageCode: 'MONGO_VALIDATION_ERROR'
         });
     }
 

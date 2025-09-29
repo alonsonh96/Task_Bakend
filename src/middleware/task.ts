@@ -14,10 +14,10 @@ declare global {
 export async function validateTaskExists(req: Request, res: Response, next: NextFunction) {
     try {
         const { taskId } = req.params;
-        if(!taskId?.trim()) throw new ValidationError('Task ID is required')
+        if(!taskId?.trim()) throw new ValidationError('VALIDATION_REQUIRED_FIELDS')
 
         const task = await Task.findById(taskId);  
-        if(!task) throw new NotFoundError('Task not found')
+        if(!task) throw new NotFoundError('TASK_NOT_FOUND')
 
         req.task = task;
         next();
@@ -30,7 +30,7 @@ export async function validateTaskExists(req: Request, res: Response, next: Next
 export async function taskBelongsProject(req: Request, res: Response, next: NextFunction) {
     try {
         if (req.task.project.toString() !== req.project.id.toString()){
-            throw new ForbiddenError('Task does not belong to this project')
+            throw new ForbiddenError('TASK_NOT_IN_PROJECT')
         }
         next()
     } catch (error) {
@@ -44,7 +44,7 @@ export async function hasAuthorization(req: Request, res: Response, next: NextFu
     const managerId = req.project.manager.toString();
     try {
         if(userId !== managerId){
-            throw new UnauthorizedError('The user does not have the required permissions')
+            throw new UnauthorizedError('UNAUTHORIZED_ACTION')
         }
         next()
     } catch (error) {

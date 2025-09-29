@@ -15,9 +15,12 @@ export class AppError extends Error {
 
 
 export class ValidationError extends AppError {
-    constructor(messageCode: string = 'VALIDATION_ERROR'){
-        super(400, messageCode)
-    } 
+    public readonly details?: any[];
+
+    constructor(messageCode: string = 'VALIDATION_ERROR', details?: any[]){
+        super(400, messageCode);
+        this.details = details
+    }
 }
 
 export class UnauthorizedError extends AppError {

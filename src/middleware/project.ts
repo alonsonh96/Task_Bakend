@@ -14,10 +14,10 @@ declare global {
 export async function validateProjectExists(req: Request, res: Response, next: NextFunction) {
     try {
         const { projectId } = req.params;
-        if(!projectId || !projectId.trim()) throw new ValidationError('Project ID is required')
+        if(!projectId || !projectId.trim()) throw new ValidationError('VALIDATION_REQUIRED_FIELDS')
 
         const project = await Project.findById(projectId).populate('tasks');
-        if(!project) throw new NotFoundError('Project not found')
+        if(!project) throw new NotFoundError('PROJECTS_NOT_FOUND')
 
         req.project = project; // Attach the project to the request object for further use
         // Optionally, you can also attach the project ID to the request object

@@ -53,7 +53,7 @@ router.post('/:projectId/tasks',
 
 router.post('/:projectId/tasks/:taskId/status', 
     validateMongoId('taskId'),
-    body('status').notEmpty().withMessage('El estado es obligatorio'),
+    body('status').notEmpty().withMessage('STATUS_TASK_REQUIRED'),
     handleInputErrors,
     TaskController.updateStatus
 )

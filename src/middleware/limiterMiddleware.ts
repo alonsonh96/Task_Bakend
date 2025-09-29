@@ -5,17 +5,17 @@ const RATE_LIMIT_CONFIG = {
     auth: {
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 5,
-        message: { error: 'Too many authentication attempts. Try again in 15 minutes.' }
+        messageCode: 'AUTH_RATE_LIMITED'
     },
     password: {
         windowMs: 60 * 60 * 1000, // 1 hour
         max: 3,
-        message: { error: 'Too many password change attempts. Try again in an hour.' }
+        messageCode: 'PASSWORD_RATE_LIMITED'
     },
     profile: {
         windowMs: 60 * 60 * 1000, // 1 hour
         max: 5,
-        message: { error: 'Too many profile updates. Try again in an hour.' }
+        messageCde: 'PROFILE_RATE_LIMITED'
     }
 }
 
@@ -26,7 +26,7 @@ function createRateLimiter(name: string, options: any){
         windowMs: options.windowMs,
         max: options.max,
         keyGenerator: (req, res) => ipKeyGenerator(req.ip),
-        message: options.message,
+        message: options.messageCode,
         standardHeaders: true,
         legacyHeaders: false,
     })

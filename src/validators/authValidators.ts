@@ -3,34 +3,47 @@ import { body, ValidationChain  } from 'express-validator';
 
 const validators = {
   name: {
-    required: () => body('name').trim().notEmpty().withMessage('Name is required').isLength({ min: 2, max: 50 }).withMessage('Name must be between 2 and 50 characters')
+    required: () => body('name')
+                      .trim()
+                      .notEmpty()
+                      .withMessage('NAME_REQUIRED')
+                      .isLength({ min: 2, max: 50 })
+                      .withMessage('NAME_LENGTH_INVALID')
   },
   email: {
-    valid: () => body('email').isEmail().withMessage('Email is not valid').normalizeEmail()
+    valid: () => body('email')
+                    .isEmail()
+                    .withMessage('EMAIL_INVALID')
+                    .normalizeEmail()
   },
   password: {
 
     current: () => body('current_password')
                       .trim()
                       .notEmpty()
-                      .withMessage('Current password cannot be empty.')
-                      .isLength({min: 8}).withMessage(`Password must be at least ${8} characters long`),
+                      .withMessage('PASSWORD_REQUIRED')
+                      .isLength({min: 8}).withMessage(`PASSWORD_TOO_SHORT`),
 
-    required: () => body('password').notEmpty().withMessage('Password cannot be empty.')
-    ,
+    required: () => body('password')
+                      .notEmpty()
+                      .withMessage('PASSWORD_REQUIRED'),
 
-    minLength: (min: number = 8) => body('password').isLength({ min }).withMessage(`Password must be at least ${min} characters long`),
+    minLength: (min: number = 8) => body('password')
+                                      .isLength({ min })
+                                      .withMessage(`PASSWORD_TOO_SHORT`),
 
     confirmation: () =>
       body('password_confirmation').custom((value, { req }) => {
         if (value !== req.body.password) {
-          throw new Error('Passwords do not match')
+          throw new Error('PASSWORD_MISMATCH')
         }
         return true
       })
   },
   token: {
-    required: () => body('token').notEmpty().withMessage('Token is required')
+    required: () => body('token')
+                      .notEmpty()
+                      .withMessage('TOKEN_REQUIRED')
   }
 }
 
