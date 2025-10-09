@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { User } from "../models/User";
-import { DuplicateError, NotFoundError } from "../utils/errors";
+import { BadRequestError, DuplicateError, NotFoundError } from "../utils/errors";
 import { sendSuccess } from "../utils/responses";
 import Project from "../models/Project";
 
@@ -10,6 +10,11 @@ export class TeamMemberController {
     static findMemberByEmail = asyncHandler(async( req: Request, res: Response ) => {
         const { email } = req.body
         const normalizedEmail = email.toLowerCase().trim();
+
+        // Prevent adding oneself
+        if(normalizedEmail === req.user.email.toLowerCase().trim()) {
+            throw new DuplicateError('TEAM_MEMBER_SELF_ADD_NOT_ALLOWED')
+        }
 
         const user = await User.findOne({ email: normalizedEmail }).select('_id email name').lean()
         if(!user) throw new NotFoundError('TEAM_MEMBER_NOT_FOUND')
@@ -20,6 +25,9 @@ export class TeamMemberController {
 
     static addMemberById = asyncHandler(async(req: Request, res: Response) => {
         const { id } = req.body
+
+        // Prevent adding oneself
+        if(req.user.id === id) throw new BadRequestError('TEAM_MEMBER_SELF_ADD_NOT_ALLOWED')
         
         // Check if the user is already on the team
         if(req.project.team.includes(id)) throw new DuplicateError('TEAM_MEMBER_ALREADY_EXISTS')

@@ -26,7 +26,7 @@ router.post('/confirm-account',
     AuthController.confirmAccount)
 
 router.post('/login',
-    // authLimiter,
+    authLimiter,
     logginAccountValidators,
     handleInputErrors,
     AuthController.loginAccount

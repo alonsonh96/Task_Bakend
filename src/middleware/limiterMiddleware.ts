@@ -1,4 +1,5 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { TooManyRequestsError } from '../utils/errors';
 
 
 const RATE_LIMIT_CONFIG = {
@@ -15,7 +16,7 @@ const RATE_LIMIT_CONFIG = {
     profile: {
         windowMs: 60 * 60 * 1000, // 1 hour
         max: 5,
-        messageCde: 'PROFILE_RATE_LIMITED'
+        messageCode: 'PROFILE_RATE_LIMITED'
     }
 }
 
@@ -29,6 +30,10 @@ function createRateLimiter(name: string, options: any){
         message: options.messageCode,
         standardHeaders: true,
         legacyHeaders: false,
+
+        handler: (req, res, next) => {
+            next(new TooManyRequestsError(options.messageCode))
+        },
     })
 }
 

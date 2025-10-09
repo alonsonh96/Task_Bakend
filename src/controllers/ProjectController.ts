@@ -29,11 +29,7 @@ export class ProjectController {
             }))
         }));
 
-        return sendSuccess(res, 
-            projectDTOs.length > 0 
-            ? 'PROJECTS_FETCHED' 
-            : 'NO_PROJECTS_FOUND', 
-            projectDTOs)
+        return sendSuccess(res,'PROJECTS_FETCH_SUCCESS', projectDTOs)
     })
 
     

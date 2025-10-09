@@ -23,6 +23,12 @@ export class ValidationError extends AppError {
     }
 }
 
+export class BadRequestError extends AppError {
+    constructor(messageCode: string = 'BAD_REQUEST') {
+        super(400, messageCode);
+    }
+}
+
 export class UnauthorizedError extends AppError {
     constructor(messageCode: string = 'UNAUTHORIZED') {
         super(401, messageCode);
@@ -50,6 +56,12 @@ export class DuplicateError extends AppError {
 export class UnprocessableEntityError extends AppError {
     constructor(messageCode: string = 'UNPROCESSABLE_ENTITY') {
         super(422, messageCode);
+    }
+}
+
+export class TooManyRequestsError extends AppError {
+    constructor(messageCode: string = 'TOO_MANY_REQUESTS') {
+        super(429, messageCode);
     }
 }
 
