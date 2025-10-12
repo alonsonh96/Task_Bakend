@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon --watch src --watch src/docs --ext ts,yaml,yml --exec ts-node src/index.ts",
     "swagger:bundle": "swagger-cli bundle ./src/docs/swagger.yaml -o ./src/docs/bundle.yaml -t yaml",
-    "build": "tsc && cp -r src/docs dist/docs",
+    "build": "npm run swagger:bundle && tsc && mkdir -p dist/docs && cp -r src/docs/* dist/docs/",
     "start": "node ./dist/index.js"
   },
   "keywords": [],

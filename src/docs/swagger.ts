@@ -38,6 +38,6 @@ const swaggerOptions: swaggerJSDoc.Options = {
 
 
 export async function setupSwagger(app: import('express').Express) {
-  const swaggerDoc = await SwaggerParser.dereference(path.join(__dirname, './swagger.yaml'));
+  const swaggerDoc = await SwaggerParser.dereference(path.join(__dirname, 'docs', 'swagger.yaml'));
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 }
