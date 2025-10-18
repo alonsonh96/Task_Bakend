@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken"
 import { Request, Response, NextFunction } from "express";
+import { get } from "node:http";
 
 type UserPayload = {
     id: string
@@ -21,15 +22,22 @@ export const generateRefreshToken = ( payload : UserPayload ) => {
     )
 }
 
+// Cookie configuration for cross-domain setup
+const getCookieConfig = () => {
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    return {
+        httpOnly: true,
+        secure: isProduction, // Must be true in production for sameSite: 'none'
+        sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax' | 'strict',
+    }
+}
+
 
 // Helper function to set authentication cookies
-export const setAuthCookie = (res: Response, token: string): void => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+export const setAuthCookie = (res: Response, token: string): void => {  
   res.cookie('accessToken', token, {
-    httpOnly: true,           // Prevents access from JavaScript
-    secure: isProduction,     // Use HTTPS only in production
-    sameSite: 'strict',       // Protection CSRF
+    ...getCookieConfig(),
     maxAge: 24 * 60 * 60 * 1000, // 24h
     path: '/'                 
   });
@@ -39,9 +47,7 @@ export const setAuthCookie = (res: Response, token: string): void => {
 // Helper function to clear authentication cookies
 export const clearAuthCookie = (res: Response): void => {
   res.clearCookie('accessToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    ...getCookieConfig(),
     path: '/'
   });
 };
@@ -49,12 +55,8 @@ export const clearAuthCookie = (res: Response): void => {
 
 // Helper function to refresh cookies
 export const setRefreshCookie = (res: Response, refreshToken: string): void => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
   res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'strict',
+    ...getCookieConfig(),
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/api/auth/refresh' 
   });
@@ -64,9 +66,7 @@ export const setRefreshCookie = (res: Response, refreshToken: string): void => {
 // Helper function to clear cookies
 export const clearRefreshCookie = (res: Response): void => {
   res.clearCookie('refreshToken', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    ...getCookieConfig(),
     path: '/api/auth/refresh'
   })
 }
