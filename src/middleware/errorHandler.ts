@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError, ValidationError } from '../utils/errors';
+import { AppError, EmailError, ValidationError } from '../utils/errors';
 
 export const errorHandler = (
     error: any,
@@ -12,7 +12,11 @@ export const errorHandler = (
         stack: error.stack,
         url: req.url,
         method: req.method,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...(error instanceof EmailError && { 
+            emailAddress: error.emailAddress,
+            retries: error.retries 
+        })
     });
 
     if (error instanceof ValidationError && error.details) {
@@ -21,6 +25,21 @@ export const errorHandler = (
             statusCode: error.statusCode,
             messageCode: error.messageCode,
             errors: error.details
+        });
+    }
+
+    if (error instanceof EmailError) {
+        return res.status(error.statusCode).json({
+            success: false,
+            statusCode: error.statusCode,
+            messageCode: error.messageCode,
+            // Details of email , only in development mode
+            ...(process.env.NODE_ENV === 'development' && {
+                details: {
+                    emailAddress: error.emailAddress,
+                    retries: error.retries
+                }
+            })
         });
     }
 
@@ -74,7 +93,7 @@ export const errorHandler = (
         return res.status(500).json({
             success: false,
             statusCode: error.statusCode,
-            messageCode: 'Error processing account data',
+            messageCode: 'BCRYPT_ERROR',
         });
     }
 

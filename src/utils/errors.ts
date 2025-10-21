@@ -65,4 +65,19 @@ export class TooManyRequestsError extends AppError {
     }
 }
 
+export class EmailError extends AppError {
+    public readonly emailAddress?: string;
+    public readonly retries?: number;
+
+    constructor(
+        messageCode: string = 'EMAIL_SEND_ERROR', 
+        emailAddress?: string, 
+        retries?: number
+    ) {
+        super(500, messageCode);
+        this.emailAddress = emailAddress;
+        this.retries = retries;
+    }
+}
+
 

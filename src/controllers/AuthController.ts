@@ -59,7 +59,7 @@ export class AuthController {
                     token: token.token
                 }).catch(error => {
                     // Log error but don't fail the registration
-                    console.error('Failed to send confirmation email:', error);
+                    console.error('⚠️ No se pudo enviar email de confirmación:', error.message);
                 });
 
                 return sendSuccess(res, 'ACCOUNT_CREATE_SUCCESS', 
@@ -142,28 +142,28 @@ export class AuthController {
             const isPasswordCorrect = await checkPassword(password, user.password)
             if(!isPasswordCorrect) throw new UnauthorizedError('ACCOUNT_LOGIN_INVALID_CREDENTIALS')
 
-            // Check if account is confirmed
-            if (!user.confirmed) {
-                await this.checkConfirmationRateLimit(user.id)
-                await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
-                
-                throw new AppError(403,'ACCOUNT_LOGIN_NOT_CONFIRMED');
-            }
+                // Check if account is confirmed
+                if (!user.confirmed) {
+                    await this.checkConfirmationRateLimit(user.id)
+                    await this.generateAndSendConfirmationToken(user, AuthEmail.sendConfirmationEmail)
+                    
+                    throw new AppError(403,'ACCOUNT_LOGIN_NOT_CONFIRMED');
+                }
 
-            const accessToken = generateAccessToken({ id: user.id.toString() })
-            const refreshToken = generateRefreshToken({ id: user.id.toString() })
-            setAuthCookie(res, accessToken)
-            setRefreshCookie(res, refreshToken)
+                const accessToken = generateAccessToken({ id: user.id.toString() })
+                const refreshToken = generateRefreshToken({ id: user.id.toString() })
+                setAuthCookie(res, accessToken)
+                setRefreshCookie(res, refreshToken)
 
-            return sendSuccess(res, 'ACCOUNT_LOGIN_SUCCESS',
-                {user: {
-                        id: user._id,
-                        name: user.name,
-                        email: user.email,
-                        confirmed: user.confirmed
-                }}
-            )
-    })
+                return sendSuccess(res, 'ACCOUNT_LOGIN_SUCCESS',
+                    {user: {
+                            id: user._id,
+                            name: user.name,
+                            email: user.email,
+                            confirmed: user.confirmed
+                    }}
+                )
+        })
 
 
     static requestConfirmationCode = asyncHandler(async(req: Request, res: Response) => {
@@ -323,8 +323,8 @@ export class AuthController {
 
     private static generateAndSendConfirmationToken = async (
         user: any,
-        emailFn: (params: { email: string, name: string, token: string }) => Promise<void>
-    ) => {
+        emailFn: (params: { email: string, name: string, token: string }) => Promise<any>
+    ) : Promise<void> => {
         // Clean up old tokens for this user
         await Token.deleteMany({ user: user._id });
 
@@ -338,20 +338,13 @@ export class AuthController {
         await token.save();
 
         // Send confirmation email (handle errors gracefully)
-        try {
-            await emailFn({
-                email: user.email,
-                name: user.name,
-                token: token.token
-            });
-        } catch (emailError) {
-            console.error(`Failed to send confirmation email to ${user.email}:`, emailError);
-            // Don't fail the request, but maybe add to a retry queue
-            throw new AppError(
-                500,
-                'EMAIL_SEND_FAILED'
-            );
-        }
+        await emailFn({
+            email: user.email,
+            name: user.name,
+            token: token.token
+        });
+
+        console.log(`✅ Token generado y email enviado a ${user.email}`);
     }
 
 
